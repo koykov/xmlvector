@@ -24,3 +24,10 @@ func (vec *Vector) ParseCopy(s []byte) error {
 func (vec *Vector) ParseCopyStr(s string) error {
 	return vec.parse(fastconv.S2B(s), true)
 }
+
+func NewVector() *Vector {
+	vec := &Vector{}
+	// todo implement helper.
+	vec.Helper = nil
+	return vec
+}
