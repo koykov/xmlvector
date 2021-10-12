@@ -1,6 +1,9 @@
 package xmlvector
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/koykov/bytealg"
 	"github.com/koykov/vector"
 )
@@ -8,6 +11,9 @@ import (
 var (
 	// Byte constants.
 	bFmt = []byte(" \t\n\r")
+
+	bPrologOpen  = []byte("<?xml")
+	bPrologClose = []byte("?>")
 )
 
 // Main internal parser helper.
@@ -40,6 +46,30 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 
 // Generic parser helper.
 func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, error) {
-	_, _, _ = depth, offset, node
-	return 0, nil
+	var err error
+	node.SetOffset(vec.Index.Len(depth))
+	src := vec.Src()[offset:]
+	fmt.Println(string(src[:5]))
+	switch {
+	case len(src) > 4 && bytes.Equal(src[:5], bPrologOpen):
+		if len(src) > 5 && src[5] != ' ' {
+			// Ignore processing instructions like `<?xml-stylesheet ... ?>`
+			return 0, nil
+		}
+		lim := bytealg.IndexAt(src, bPrologClose, 5)
+		if lim == -1 {
+			return offset, ErrUnclosedProlog
+		}
+		prolog := src[6:lim]
+		if err = vec.parseAttr(prolog, node); err != nil {
+			return offset, err
+		}
+		offset += lim + len(bPrologClose)
+	}
+	return offset, err
+}
+
+func (vec *Vector) parseAttr(p []byte, node *vector.Node) error {
+	_, _ = p, node
+	return nil
 }
