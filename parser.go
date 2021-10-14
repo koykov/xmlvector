@@ -49,22 +49,35 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 
 // Generic parser helper.
 func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, error) {
-	var err error
+	var (
+		err error
+		eof bool
+	)
 	node.SetOffset(vec.Index.Len(depth))
-	src := vec.Src()[offset:]
-	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
-		offset = 5
-		if offset, err = vec.parseAttr(depth, offset, node); err != nil {
-			return offset, err
-		}
+	if offset, err = vec.parseProlog(depth, offset, node); err != nil {
+		return offset, err
 	}
-	return offset, err
+	if offset, eof = vec.skipPI(offset); eof {
+		return offset, vector.ErrUnexpEOF
+	}
+	return offset, nil
 }
 
 func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error) {
 	var err error
-	// todo implement me
+	src := vec.Src()[offset:]
+	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
+		offset = 5
+		offset, err = vec.parseAttr(depth, offset, node)
+	}
 	return offset, err
+}
+
+// PI == processing instructions
+// eg: <?xml-stylesheet type="text/css" href="my-style.css"?>
+func (vec *Vector) skipPI(offset int) (int, bool) {
+	// todo implement me
+	return offset, false
 }
 
 func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) {
