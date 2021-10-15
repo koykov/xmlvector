@@ -54,7 +54,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 		eof bool
 	)
 	node.SetOffset(vec.Index.Len(depth))
-	if offset, err = vec.parseProlog(depth, offset, node); err != nil {
+	if offset, err = vec.parseProlog(depth+1, offset, node); err != nil {
 		return offset, err
 	}
 	if offset, eof = vec.skipPI(offset); eof {
@@ -68,6 +68,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		err error
 		eof bool
 	)
+	node.SetOffset(vec.Index.Len(depth))
 	src := vec.Src()[offset:]
 	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
 		offset = 5
@@ -124,14 +125,16 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		}
 
 		attr, i := vec.GetChildWT(node, depth, vector.TypeStr)
+		name := vec.Src()[posName:posName1]
 		boff := vec.BufLen()
-		blim := 1
+		blim := posName1 - posName + 1
 		vec.BufAppendStr("@")
-		vec.BufAppend(vec.Src()[posName:posName1])
+		vec.BufAppend(name)
 		attr.Key().Init(vec.Buf(), boff, blim)
 		val := vec.Src()[posVal:posVal1]
-		attr.Value().Init(val, posVal, posVal1-posVal)
+		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
 		// todo check val for escaped entities and glyphs (https://en.wikipedia.org/wiki/XML#Characters_and_escaping)
+		_ = val
 		// attr.Value().SetBit(flagBufSrc, true)
 		vec.PutNode(i, attr)
 
