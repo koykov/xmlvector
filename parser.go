@@ -9,6 +9,11 @@ import (
 
 const (
 	flagBufSrc = 8
+
+	offsetVersionKey = 0
+	offsetVersionVal = 8
+	lenVersionKey    = 8
+	lenVersionVal    = 3
 )
 
 var (
@@ -17,6 +22,9 @@ var (
 
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
+
+	// Keys source array and raw address of it.
+	bKeys = []byte("@version1.0")
 )
 
 // Main internal parser helper.
@@ -41,7 +49,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 	// Check unparsed tail.
 	if offset < vec.SrcLen() {
 		vec.SetErrOffset(offset)
-		return vector.ErrUnparsedTail
+		// return vector.ErrUnparsedTail
 	}
 
 	return
@@ -74,6 +82,10 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		offset = 5
 		offset, err = vec.parseAttr(depth, offset, node)
 	} else {
+		attr, i := vec.GetChildWT(node, depth, vector.TypeStr)
+		attr.Key().Init(bKeys, offsetVersionKey, lenVersionKey)
+		attr.Value().Init(bKeys, offsetVersionVal, lenVersionVal)
+		vec.PutNode(i, attr)
 		return offset, nil
 	}
 	if vec.SrcLen()-offset >= 2 && bytes.Equal(vec.Src()[offset:offset+2], bPrologClose) {
