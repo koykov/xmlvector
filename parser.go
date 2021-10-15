@@ -64,11 +64,22 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 }
 
 func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error) {
-	var err error
+	var (
+		err error
+		eof bool
+	)
 	src := vec.Src()[offset:]
 	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
 		offset = 5
 		offset, err = vec.parseAttr(depth, offset, node)
+	} else {
+		return offset, nil
+	}
+	if vec.SrcLen()-offset >= 2 && bytes.Equal(vec.Src()[offset:offset+2], bPrologClose) {
+		offset += 2
+	}
+	if offset, eof = vec.skipFmt(offset); eof {
+		err = vector.ErrUnexpEOF
 	}
 	return offset, err
 }
@@ -118,7 +129,9 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		vec.BufAppendStr("@")
 		vec.BufAppend(vec.Src()[posName:posName1])
 		attr.Key().Init(vec.Buf(), boff, blim)
-		attr.Value().Init(vec.Src()[posVal:posVal1], posVal, posVal1-posVal)
+		val := vec.Src()[posVal:posVal1]
+		attr.Value().Init(val, posVal, posVal1-posVal)
+		// todo check val for escaped entities and glyphs (https://en.wikipedia.org/wiki/XML#Characters_and_escaping)
 		// attr.Value().SetBit(flagBufSrc, true)
 		vec.PutNode(i, attr)
 
