@@ -23,8 +23,8 @@ var (
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
 
-	// Keys source array and raw address of it.
-	bKeys = []byte("@version1.0")
+	// Default key-value pairs.
+	bPairs = []byte("@version1.0")
 )
 
 // Main internal parser helper.
@@ -83,8 +83,8 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		offset, err = vec.parseAttr(depth, offset, node)
 	} else {
 		attr, i := vec.GetChildWT(node, depth, vector.TypeStr)
-		attr.Key().Init(bKeys, offsetVersionKey, lenVersionKey)
-		attr.Value().Init(bKeys, offsetVersionVal, lenVersionVal)
+		attr.Key().Init(bPairs, offsetVersionKey, lenVersionKey)
+		attr.Value().Init(bPairs, offsetVersionVal, lenVersionVal)
 		vec.PutNode(i, attr)
 		return offset, nil
 	}
@@ -145,9 +145,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		attr.Key().Init(vec.Buf(), boff, blim)
 		val := vec.Src()[posVal:posVal1]
 		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
-		// todo check val for escaped entities and glyphs (https://en.wikipedia.org/wiki/XML#Characters_and_escaping)
-		_ = val
-		// attr.Value().SetBit(flagBufSrc, true)
+		attr.Value().SetBit(flagBufSrc, vec.checkEscape(val))
 		vec.PutNode(i, attr)
 
 		offset = posVal1 + 1
@@ -159,6 +157,17 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		}
 	}
 	return offset, err
+}
+
+// Check p for escaped entities and glyphs.
+func (vec *Vector) checkEscape(p []byte) bool {
+	if len(p) == 0 {
+		return false
+	}
+	if posAmp, posSC := bytes.IndexByte(p, '&'), bytes.IndexByte(p, ';'); posAmp > -1 && posSC > posAmp {
+		return posSC-posAmp >= 2 && posAmp-posSC < 5
+	}
+	return false
 }
 
 func (vec *Vector) skipFmt(offset int) (int, bool) {
