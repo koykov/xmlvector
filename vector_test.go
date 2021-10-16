@@ -19,4 +19,7 @@ func TestProlog(t *testing.T) {
 		assertType(t, vec, "", vector.TypeObj)
 		assertStr(t, vec, "@version", "1.0")
 	})
+	t.Run("skipPI", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
 }

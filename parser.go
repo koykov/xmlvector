@@ -14,6 +14,8 @@ const (
 	offsetVersionVal = 8
 	lenVersionKey    = 8
 	lenVersionVal    = 3
+
+	lenPIOpen = 16
 )
 
 var (
@@ -22,6 +24,9 @@ var (
 
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
+
+	bPIOpen  = []byte("<?xml-stylesheet")
+	bPIClose = []byte("?>")
 
 	// Default key-value pairs.
 	bPairs = []byte("@version1.0")
@@ -100,8 +105,24 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 // PI == processing instructions
 // eg: <?xml-stylesheet type="text/css" href="my-style.css"?>
 func (vec *Vector) skipPI(offset int) (int, bool) {
-	// todo implement me
-	return offset, false
+	var eof bool
+loop:
+	src := vec.Src()[offset:]
+	if len(src) < lenPIOpen {
+		return offset, false
+	}
+	if !bytes.Equal(src[:lenPIOpen], bPIOpen) {
+		return offset, false
+	}
+	posClose := bytealg.IndexAt(src, bPIClose, lenPIOpen)
+	if posClose == -1 {
+		return offset, true
+	}
+	offset += posClose + 2
+	if offset, eof = vec.skipFmt(offset); eof {
+		return offset, true
+	}
+	goto loop
 }
 
 func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) {
