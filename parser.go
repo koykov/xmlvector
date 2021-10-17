@@ -15,6 +15,7 @@ const (
 	lenVersionKey    = 8
 	lenVersionVal    = 3
 
+	lenDTOpen = 9
 	lenPIOpen = 16
 )
 
@@ -24,6 +25,11 @@ var (
 
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
+
+	bDocType  = []byte("<!DOCTYPE")
+	bDTElem   = []byte("<!ELEMENT")
+	bDTPCDATA = []byte("#PCDATA")
+	bDTClose  = []byte("]>")
 
 	bPIOpen  = []byte("<?xml-stylesheet")
 	bPIClose = []byte("?>")
@@ -70,7 +76,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	if offset, err = vec.parseProlog(depth+1, offset, node); err != nil {
 		return offset, err
 	}
-	if offset, eof = vec.skipPI(offset); eof {
+	if offset, eof = vec.skipHdr(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
 	return offset, nil
@@ -102,27 +108,45 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 	return offset, err
 }
 
+// Skip header part (doctype and processing instructions)
 // PI == processing instructions
 // eg: <?xml-stylesheet type="text/css" href="my-style.css"?>
-func (vec *Vector) skipPI(offset int) (int, bool) {
-	var eof bool
+func (vec *Vector) skipHdr(offset int) (int, bool) {
+	var dt, pi, eof bool
 loop:
 	src := vec.Src()[offset:]
+	// DT
+	if len(src) < lenDTOpen {
+		return offset, false
+	}
+	if dt = bytes.Equal(src[:lenDTOpen], bDocType); dt {
+		// Check local DT.
+		p0, p1, p2 := bytealg.IndexAt(src, bDTElem, lenDTOpen), bytealg.IndexAt(src, bDTPCDATA, lenDTOpen), bytealg.IndexAt(src, bDTClose, lenDTOpen)
+		if p0 != -1 && p1 > p0 && p2 > p1 {
+			offset += p2 + 2
+		} else if p := bytealg.IndexByteAtLR(src, '>', lenDTOpen); p != -1 {
+			// Check DTD file.
+			offset += p + 1
+		}
+	}
+	// PI
 	if len(src) < lenPIOpen {
 		return offset, false
 	}
-	if !bytes.Equal(src[:lenPIOpen], bPIOpen) {
-		return offset, false
+	if pi = bytes.Equal(src[:lenPIOpen], bPIOpen); pi {
+		posClose := bytealg.IndexAt(src, bPIClose, lenPIOpen)
+		if posClose == -1 {
+			return offset, true
+		}
+		offset += posClose + 2
 	}
-	posClose := bytealg.IndexAt(src, bPIClose, lenPIOpen)
-	if posClose == -1 {
-		return offset, true
-	}
-	offset += posClose + 2
 	if offset, eof = vec.skipFmt(offset); eof {
 		return offset, true
 	}
-	goto loop
+	if dt || pi {
+		goto loop
+	}
+	return offset, false
 }
 
 func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) {

@@ -22,4 +22,10 @@ func TestProlog(t *testing.T) {
 	t.Run("skipPI", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 	})
+	t.Run("skipDT", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
+	t.Run("skipDTLocal", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
 }
