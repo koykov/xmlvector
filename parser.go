@@ -185,10 +185,17 @@ func (vec *Vector) checkEscape(p []byte) bool {
 	if len(p) == 0 {
 		return false
 	}
-	if posAmp, posSC := bytes.IndexByte(p, '&'), bytes.IndexByte(p, ';'); posAmp > -1 && posSC > posAmp {
-		return posSC-posAmp >= 2 && posAmp-posSC < 5
+	offset := 0
+loop:
+	posAmp, posSC := bytealg.IndexByteAtLR(p, '&', offset), bytealg.IndexByteAtLR(p, ';', offset)
+	if posAmp == -1 || posSC == -1 {
+		return false
 	}
-	return false
+	if posSC-posAmp >= 2 && posAmp-posSC < 5 {
+		return true
+	}
+	offset = posSC
+	goto loop
 }
 
 func (vec *Vector) skipFmt(offset int) (int, bool) {
