@@ -28,4 +28,7 @@ func TestProlog(t *testing.T) {
 	t.Run("skipDTLocal", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 	})
+	t.Run("skipHeader", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
 }
