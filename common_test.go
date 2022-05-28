@@ -78,8 +78,8 @@ func assertType(tb testing.TB, vec *Vector, path string, typ vector.Type) {
 
 func assertStr(tb testing.TB, vec *Vector, path, expect string) {
 	var node *vector.Node
-	if node = vec.Dot(path); node.Type() != vector.TypeStr {
-		tb.Error("node type mismatch, need", vector.TypeStr, "got", node.Type())
+	if node = vec.Dot(path); node.Type() != vector.TypeAttr {
+		tb.Error("node type mismatch, need", vector.TypeAttr, "got", node.Type())
 		return
 	}
 	if node.String() != expect {

@@ -11,8 +11,8 @@ const (
 	flagBufSrc = 8
 
 	offsetVersionKey = 0
-	offsetVersionVal = 8
-	lenVersionKey    = 8
+	offsetVersionVal = 7
+	lenVersionKey    = 7
 	lenVersionVal    = 3
 
 	lenDTOpen = 9
@@ -35,7 +35,7 @@ var (
 	bPIClose = []byte("?>")
 
 	// Default key-value pairs.
-	bPairs = []byte("@version1.0")
+	bPairs = []byte("version1.0")
 )
 
 // Main internal parser helper.
@@ -93,7 +93,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		offset = 5
 		offset, err = vec.parseAttr(depth, offset, node)
 	} else {
-		attr, i := vec.GetChildWT(node, depth, vector.TypeStr)
+		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
 		attr.Key().Init(bPairs, offsetVersionKey, lenVersionKey)
 		attr.Value().Init(bPairs, offsetVersionVal, lenVersionVal)
 		vec.PutNode(i, attr)
@@ -181,13 +181,8 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 			break
 		}
 
-		attr, i := vec.GetChildWT(node, depth, vector.TypeStr)
-		name := vec.Src()[posName:posName1]
-		boff := vec.BufLen()
-		blim := posName1 - posName + 1
-		vec.BufAppendStr("@")
-		vec.BufAppend(name)
-		attr.Key().Init(vec.Buf(), boff, blim)
+		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
+		attr.Key().Init(vec.Src(), posName, posName1-posName)
 		val := vec.Src()[posVal:posVal1]
 		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
 		attr.Value().SetBit(flagBufSrc, vec.checkEscape(val))
