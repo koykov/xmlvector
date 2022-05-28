@@ -34,6 +34,9 @@ var (
 	bPIOpen  = []byte("<?xml-stylesheet")
 	bPIClose = []byte("?>")
 
+	bAfterTag = []byte(" />")
+	bCTag     = []byte("</")
+
 	// Default key-value pairs.
 	bPairs = []byte("version1.0")
 )
@@ -60,7 +63,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 	// Check unparsed tail.
 	if offset < vec.SrcLen() {
 		vec.SetErrOffset(offset)
-		// return vector.ErrUnparsedTail
+		return vector.ErrUnparsedTail
 	}
 
 	return
@@ -78,6 +81,9 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	}
 	if offset, eof = vec.skipHdr(offset); eof {
 		return offset, vector.ErrUnexpEOF
+	}
+	if offset, err = vec.parseRoot(depth+1, offset, node); err != nil {
+		return offset, err
 	}
 	return offset, nil
 }
@@ -149,6 +155,76 @@ loop:
 	return offset, false
 }
 
+func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) {
+	var (
+		err error
+		p   int
+		tag []byte
+		// eof bool
+	)
+	if vec.SrcAt(offset) != '<' {
+		return offset, ErrNoRoot
+	}
+	offset++
+	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
+		return offset, ErrUnclosedTag
+	}
+
+	root, i := vec.GetChildWT(node, depth, vector.TypeObj)
+	defer vec.PutNode(i, root)
+	root.Key().Init(vec.Src(), offset, p-offset)
+
+	tag = vec.Src()[offset:p]
+	offset = p
+
+	switch vec.SrcAt(offset) {
+	case ' ':
+		offset++
+		if offset, err = vec.parseAttr(depth, offset, node); err != nil {
+			return offset, err
+		}
+	case '/':
+		if offset < vec.SrcLen()-1 && vec.SrcAt(offset+1) == '>' {
+			offset += 2
+			return offset, nil
+		}
+		return offset, ErrUnclosedTag
+	case '>':
+		offset++
+		if offset, err = vec.parseContent(depth+1, offset, root); err != nil {
+			return offset, err
+		}
+		if offset, err = vec.mustCTag(offset, tag); err != nil {
+			return offset, err
+		}
+		return offset, nil
+	}
+
+	return offset, err
+}
+
+func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, error) {
+	var (
+		p   int
+		eof bool
+	)
+	if offset, eof = vec.skipFmt(offset); eof {
+		return offset, vector.ErrUnexpEOF
+	}
+	if vec.SrcAt(offset) == '<' {
+		//
+	} else {
+		if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
+			return offset, ErrUnclosedTag
+		}
+		raw := vec.Src()[offset:p]
+		node.Value().Init(vec.Src(), offset, p-offset)
+		node.Value().SetBit(flagBufSrc, vec.checkEscape(raw))
+		offset = p
+	}
+	return offset, nil
+}
+
 func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) {
 	var (
 		err error
@@ -197,6 +273,18 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		}
 	}
 	return offset, err
+}
+
+func (vec *Vector) mustCTag(offset int, tag []byte) (int, error) {
+	if offset < vec.SrcLen()-2 && !bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
+		return offset, ErrUnclosedTag
+	}
+	offset += 2
+	offset += len(tag)
+	if vec.SrcAt(offset) != '>' {
+		return offset, ErrUnclosedTag
+	}
+	return offset + 1, nil
 }
 
 // Check p for escaped entities and glyphs.

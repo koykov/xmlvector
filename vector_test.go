@@ -11,13 +11,13 @@ func TestProlog(t *testing.T) {
 	t.Run("prolog", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
 		assertType(t, vec, "", vector.TypeObj)
-		assertStr(t, vec, "@version", "1.1")
-		assertStr(t, vec, "@encoding", "UTF-8")
+		assertStrWT(t, vec, "@version", "1.1", false, vector.TypeAttr)
+		assertStrWT(t, vec, "@encoding", "UTF-8", false, vector.TypeAttr)
 	})
 	t.Run("prologMiss", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
 		assertType(t, vec, "", vector.TypeObj)
-		assertStr(t, vec, "@version", "1.0")
+		assertStrWT(t, vec, "@version", "1.0", false, vector.TypeAttr)
 	})
 	t.Run("skipPI", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
@@ -30,5 +30,10 @@ func TestProlog(t *testing.T) {
 	})
 	t.Run("skipHeader", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
+	})
+
+	t.Run("rootStatic", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertStrWT(t, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", true, vector.TypeObj)
 	})
 }
