@@ -180,7 +180,7 @@ func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) 
 	switch vec.SrcAt(offset) {
 	case ' ':
 		offset++
-		if offset, err = vec.parseAttr(depth, offset, node); err != nil {
+		if offset, err = vec.parseAttr(depth+1, offset, root); err != nil {
 			return offset, err
 		}
 	case '/':
@@ -268,7 +268,21 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, error) 
 		if offset, eof = vec.skipFmt(offset); eof {
 			return offset, vector.ErrUnexpEOF
 		}
-		if b := vec.SrcAt(offset); b == '?' || b == '>' {
+
+		var brk bool
+		b := vec.SrcAt(offset)
+		switch b {
+		case '?', '/':
+			offset++
+			if vec.SrcAt(offset) != '>' {
+				return offset, ErrUnexpToken
+			}
+			offset++
+			brk = true
+		case '>':
+			brk = true
+		}
+		if brk {
 			break
 		}
 	}
