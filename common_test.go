@@ -21,24 +21,19 @@ var (
 )
 
 func init() {
-	appendStages := func(dst []stage, path string) ([]stage, error) {
-		_ = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-			if filepath.Ext(path) == ".xml" && !strings.Contains(filepath.Base(path), ".fmt.xml") {
-				st := stage{}
-				st.key = strings.Replace(path, ".xml", "", 1)
-				st.key = strings.Replace(st.key, "testdata/", "", 1)
-				st.origin, _ = ioutil.ReadFile(path)
-				if st.fmt, _ = ioutil.ReadFile(strings.Replace(path, ".xml", ".fmt.xml", 1)); len(st.fmt) > 0 {
-					// st.fmt = bytealg.Trim(st.fmt, btNl)
-				}
-				stages = append(stages, st)
+	_ = filepath.Walk("testdata", func(path string, info os.FileInfo, err error) error {
+		if filepath.Ext(path) == ".xml" && !strings.Contains(filepath.Base(path), ".fmt.xml") {
+			st := stage{}
+			st.key = strings.Replace(path, ".xml", "", 1)
+			st.key = strings.Replace(st.key, "testdata/", "", 1)
+			st.origin, _ = ioutil.ReadFile(path)
+			if st.fmt, _ = ioutil.ReadFile(strings.Replace(path, ".xml", ".fmt.xml", 1)); len(st.fmt) > 0 {
+				// st.fmt = bytealg.Trim(st.fmt, btNl)
 			}
-			return nil
-		})
-		return stages, nil
-	}
-	stages, _ = appendStages(stages, "testdata")
-	stages, _ = appendStages(stages, "testdata/prolog")
+			stages = append(stages, st)
+		}
+		return nil
+	})
 }
 
 func getStage(key string) (st *stage) {
