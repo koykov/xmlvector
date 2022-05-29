@@ -51,4 +51,8 @@ func TestRoot(t *testing.T) {
 		assertStrWT(t, vec, "root@arg0", "qwe", false, vector.TypeAttr)
 		assertStrWT(t, vec, "root@arg1", "15", false, vector.TypeAttr)
 	})
+	t.Run("root/object", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertType(t, vec, "root", vector.TypeObj)
+	})
 }

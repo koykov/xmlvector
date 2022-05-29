@@ -160,7 +160,7 @@ func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) 
 		err error
 		p   int
 		tag []byte
-		// eof bool
+		eof bool
 	)
 	if vec.SrcAt(offset) != '<' {
 		return offset, ErrNoRoot
@@ -197,6 +197,9 @@ func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) 
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
 			return offset, err
 		}
+		if offset, eof = vec.skipFmt(offset); eof {
+			return offset, vector.ErrUnexpEOF
+		}
 		return offset, nil
 	}
 
@@ -207,12 +210,29 @@ func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, erro
 	var (
 		p   int
 		eof bool
+		err error
 	)
 	if offset, eof = vec.skipFmt(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
 	if vec.SrcAt(offset) == '<' {
-		//
+		sl := vec.SrcLen()
+		for {
+			if offset, eof = vec.skipFmt(offset); eof {
+				return offset, vector.ErrUnexpEOF
+			}
+			if offset, err = vec.parseRoot(depth+1, offset, node); err != nil {
+				return offset, err
+			}
+			if sl == offset {
+				break
+			}
+			if offset+1 < sl {
+				if bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
+					break
+				}
+			}
+		}
 	} else {
 		if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
 			return offset, ErrUnclosedTag
