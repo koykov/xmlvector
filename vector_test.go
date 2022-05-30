@@ -53,6 +53,10 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/object", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "root", vector.TypeObj)
+		assertType(t, vec, "note", vector.TypeObj)
+		assertStrWT(t, vec, "note.to", "Tove", true, vector.TypeObj)
+		assertStrWT(t, vec, "note.from", "Jani", true, vector.TypeObj)
+		assertStrWT(t, vec, "note.heading", "Reminder", true, vector.TypeObj)
+		assertStrWT(t, vec, "note.body", "Don't forget me this weekend!", true, vector.TypeObj)
 	})
 }

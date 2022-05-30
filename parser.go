@@ -191,13 +191,13 @@ func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) 
 		return offset, ErrUnclosedTag
 	case '>':
 		offset++
-		if offset, err = vec.parseContent(depth+1, offset, root); err != nil {
+		if offset, err = vec.parseContent(depth, offset, root); err != nil {
 			return offset, err
 		}
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
 			return offset, err
 		}
-		if offset, eof = vec.skipFmt(offset); eof {
+		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
 			return offset, vector.ErrUnexpEOF
 		}
 		return offset, nil
