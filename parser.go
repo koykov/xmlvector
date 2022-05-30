@@ -171,6 +171,7 @@ func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) 
 	}
 
 	root, i := vec.GetChildWT(node, depth, vector.TypeObj)
+	root.SetOffset(vec.Index.Len(depth + 1))
 	defer vec.PutNode(i, root)
 	root.Key().Init(vec.Src(), offset, p-offset)
 

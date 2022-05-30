@@ -1,6 +1,7 @@
 package xmlvector
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/koykov/vector"
@@ -58,5 +59,12 @@ func TestRoot(t *testing.T) {
 		assertStrWT(t, vec, "note.from", "Jani", true, vector.TypeObj)
 		assertStrWT(t, vec, "note.heading", "Reminder", true, vector.TypeObj)
 		assertStrWT(t, vec, "note.body", "Don't forget me this weekend!", true, vector.TypeObj)
+	})
+	t.Run("root/array", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertType(t, vec, "CATALOG", vector.TypeObj)
+		var buf bytes.Buffer
+		_ = vec.Beautify(&buf)
+		println(buf.String())
 	})
 }
