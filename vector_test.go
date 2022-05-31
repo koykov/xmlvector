@@ -11,14 +11,14 @@ func TestProlog(t *testing.T) {
 	t.Run("prolog/initial", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
 		assertType(t, vec, "", vector.TypeObj)
-		assertStrWT(t, vec, "@version", "1.1", false, vector.TypeAttr)
-		assertStrWT(t, vec, "@encoding", "UTF-8", false, vector.TypeAttr)
-		assertStrWT(t, vec, "version", "initial", true, vector.TypeObj)
+		assertStr(t, vec, "@version", "1.1", false, vector.TypeAttr)
+		assertStr(t, vec, "@encoding", "UTF-8", false, vector.TypeAttr)
+		assertStr(t, vec, "version", "initial", true, vector.TypeObj)
 	})
 	t.Run("prolog/missed", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
 		assertType(t, vec, "", vector.TypeObj)
-		assertStrWT(t, vec, "@version", "1.0", false, vector.TypeAttr)
+		assertStr(t, vec, "@version", "1.0", false, vector.TypeAttr)
 	})
 	t.Run("prolog/skipPI", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
@@ -38,7 +38,7 @@ func TestRoot(t *testing.T) {
 	vec := NewVector()
 	t.Run("root/static", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStrWT(t, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", true, vector.TypeObj)
+		assertStr(t, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", true, vector.TypeObj)
 	})
 	t.Run("root/collapsed", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
@@ -46,18 +46,18 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/attr", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStrWT(t, vec, "root@title", "Foo", false, vector.TypeAttr)
-		assertStrWT(t, vec, "root@descr", "Bar", false, vector.TypeAttr)
-		assertStrWT(t, vec, "root@arg0", "qwe", false, vector.TypeAttr)
-		assertStrWT(t, vec, "root@arg1", "15", false, vector.TypeAttr)
+		assertStr(t, vec, "root@title", "Foo", false, vector.TypeAttr)
+		assertStr(t, vec, "root@descr", "Bar", false, vector.TypeAttr)
+		assertStr(t, vec, "root@arg0", "qwe", false, vector.TypeAttr)
+		assertStr(t, vec, "root@arg1", "15", false, vector.TypeAttr)
 	})
 	t.Run("root/object", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 		assertType(t, vec, "note", vector.TypeObj)
-		assertStrWT(t, vec, "note.to", "Tove", true, vector.TypeObj)
-		assertStrWT(t, vec, "note.from", "Jani", true, vector.TypeObj)
-		assertStrWT(t, vec, "note.heading", "Reminder", true, vector.TypeObj)
-		assertStrWT(t, vec, "note.body", "Don't forget me this weekend!", true, vector.TypeObj)
+		assertStr(t, vec, "note.to", "Tove", true, vector.TypeObj)
+		assertStr(t, vec, "note.from", "Jani", true, vector.TypeObj)
+		assertStr(t, vec, "note.heading", "Reminder", true, vector.TypeObj)
+		assertStr(t, vec, "note.body", "Don't forget me this weekend!", true, vector.TypeObj)
 	})
 	t.Run("root/array", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)

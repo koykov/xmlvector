@@ -77,11 +77,7 @@ func assertType(tb testing.TB, vec *Vector, path string, typ vector.Type) {
 	}
 }
 
-func assertStr(tb testing.TB, vec *Vector, path, expect string) {
-	assertStrWT(tb, vec, path, expect, false, vector.TypeStr)
-}
-
-func assertStrWT(tb testing.TB, vec *Vector, path, expect string, force bool, typ vector.Type) {
+func assertStr(tb testing.TB, vec *Vector, path, expect string, force bool, typ vector.Type) {
 	var node *vector.Node
 	if node = vec.Dot(path); node.Type() != typ {
 		tb.Error("node type mismatch, need", typ, "got", node.Type())
