@@ -82,7 +82,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	if offset, eof = vec.skipHdr(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-	if offset, err = vec.parseRoot(depth+1, offset, node); err != nil {
+	if offset, err = vec.parseElement(depth+1, offset, node); err != nil {
 		return offset, err
 	}
 	return offset, nil
@@ -155,7 +155,7 @@ loop:
 	return offset, false
 }
 
-func (vec *Vector) parseRoot(depth, offset int, node *vector.Node) (int, error) {
+func (vec *Vector) parseElement(depth, offset int, node *vector.Node) (int, error) {
 	var (
 		err error
 		p   int
@@ -222,7 +222,7 @@ func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, erro
 			if offset, eof = vec.skipFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			if offset, err = vec.parseRoot(depth+1, offset, node); err != nil {
+			if offset, err = vec.parseElement(depth+1, offset, node); err != nil {
 				return offset, err
 			}
 			if sl == offset {
