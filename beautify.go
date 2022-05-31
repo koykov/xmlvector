@@ -32,7 +32,7 @@ func (vec *Vector) beautify(w io.Writer, node *vector.Node, depth int) (err erro
 
 func (vec *Vector) beautify1(w io.Writer, node *vector.Node, depth int) (err error) {
 	switch node.Type() {
-	case vector.TypeObj:
+	case vector.TypeObj, vector.TypeArr:
 		writePad(w, depth-1)
 		_, _ = w.Write(btTagO)
 		_, _ = w.Write(node.Key().Bytes())

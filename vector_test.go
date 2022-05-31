@@ -1,7 +1,6 @@
 package xmlvector
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/koykov/vector"
@@ -62,9 +61,34 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/array", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "CATALOG", vector.TypeObj)
-		var buf bytes.Buffer
-		_ = vec.Beautify(&buf)
-		println(buf.String())
+		assertType(t, vec, "CATALOG", vector.TypeArr)
+		vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
+			switch idx {
+			case 0:
+				if node.Dot("TITLE").Value().String() != "Empire Burlesque" {
+					t.FailNow()
+				}
+			case 1:
+				if node.Dot("ARTIST").Value().String() != "Bonnie Tyler" {
+					t.FailNow()
+				}
+			case 2:
+				if node.Dot("COUNTRY").Value().String() != "USA" {
+					t.FailNow()
+				}
+			case 3:
+				if node.Dot("COMPANY").Value().String() != "Virgin records" {
+					t.FailNow()
+				}
+			case 4:
+				if node.Dot("PRICE").Value().String() != "9.90" {
+					t.FailNow()
+				}
+			case 5:
+				if node.Dot("YEAR").Value().String() != "1998" {
+					t.FailNow()
+				}
+			}
+		})
 	})
 }

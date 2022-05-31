@@ -82,7 +82,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	if offset, eof = vec.skipHdr(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-	if offset, err = vec.parseElement(depth+1, offset, node); err != nil {
+	if _, offset, err = vec.parseElement(depth+1, offset, node); err != nil {
 		return offset, err
 	}
 	return offset, nil
@@ -155,7 +155,7 @@ loop:
 	return offset, false
 }
 
-func (vec *Vector) parseElement(depth, offset int, node *vector.Node) (int, error) {
+func (vec *Vector) parseElement(depth, offset int, node *vector.Node) (*vector.Node, int, error) {
 	var (
 		err error
 		p   int
@@ -163,11 +163,11 @@ func (vec *Vector) parseElement(depth, offset int, node *vector.Node) (int, erro
 		eof bool
 	)
 	if vec.SrcAt(offset) != '<' {
-		return offset, ErrNoRoot
+		return nil, offset, ErrNoRoot
 	}
 	offset++
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
-		return offset, ErrUnclosedTag
+		return nil, offset, ErrUnclosedTag
 	}
 
 	root, i := vec.GetChildWT(node, depth, vector.TypeObj)
@@ -182,29 +182,29 @@ func (vec *Vector) parseElement(depth, offset int, node *vector.Node) (int, erro
 	case ' ':
 		offset++
 		if offset, err = vec.parseAttr(depth+1, offset, root); err != nil {
-			return offset, err
+			return root, offset, err
 		}
 	case '/':
 		if offset < vec.SrcLen()-1 && vec.SrcAt(offset+1) == '>' {
 			offset += 2
-			return offset, nil
+			return root, offset, nil
 		}
-		return offset, ErrUnclosedTag
+		return root, offset, ErrUnclosedTag
 	case '>':
 		offset++
 		if offset, err = vec.parseContent(depth, offset, root); err != nil {
-			return offset, err
+			return root, offset, err
 		}
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
-			return offset, err
+			return root, offset, err
 		}
 		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-			return offset, vector.ErrUnexpEOF
+			return root, offset, vector.ErrUnexpEOF
 		}
-		return offset, nil
+		return root, offset, nil
 	}
 
-	return offset, err
+	return root, offset, err
 }
 
 func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, error) {
@@ -218,12 +218,23 @@ func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, erro
 	}
 	if vec.SrcAt(offset) == '<' {
 		sl := vec.SrcLen()
+		var (
+			pn, cn *vector.Node
+			arr    bool
+		)
 		for {
 			if offset, eof = vec.skipFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			if offset, err = vec.parseElement(depth+1, offset, node); err != nil {
+			if cn, offset, err = vec.parseElement(depth+1, offset, node); err != nil {
 				return offset, err
+			}
+			if !arr {
+				if pn == nil && cn != nil {
+					pn = cn
+				} else if cn.KeyString() == pn.KeyString() {
+					arr = true
+				}
 			}
 			if sl == offset {
 				break
@@ -233,6 +244,10 @@ func (vec *Vector) parseContent(depth, offset int, node *vector.Node) (int, erro
 					break
 				}
 			}
+		}
+		if arr {
+			node.SetType(vector.TypeArr)
+			*node.AKA() = *pn.Key()
 		}
 	} else {
 		if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
