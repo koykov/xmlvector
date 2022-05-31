@@ -61,7 +61,7 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/array", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "CATALOG", vector.TypeArr)
+		assertType(t, vec, "CATALOG.CD", vector.TypeArr)
 		vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
 			switch idx {
 			case 0:
