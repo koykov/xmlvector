@@ -298,8 +298,16 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			*root.AKA() = *pn.Key()
 		}
 	} else {
-		if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
-			return offset, ErrUnclosedTag
+		var d int
+		if cdata {
+			if p = bytealg.IndexAt(vec.Src(), bCDATAClose, offset); p == -1 {
+				return offset, vector.ErrUnexpEOF
+			}
+			d = 3
+		} else {
+			if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
+				return offset, ErrUnclosedTag
+			}
 		}
 		raw := vec.Src()[offset:p]
 		root.Value().Init(vec.Src(), offset, p-offset)
@@ -307,7 +315,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		if !root.Key().CheckBit(flagAttr) {
 			root.SetType(vector.TypeStr)
 		}
-		offset = p
+		offset = p + d
 	}
 	return offset, nil
 }

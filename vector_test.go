@@ -136,6 +136,11 @@ func TestRoot(t *testing.T) {
 		assertStr(t, vec, "list.title", "welcome", vector.TypeStr)
 		assertStr(t, vec, "list.payload", "foobar", vector.TypeStr)
 	})
+	t.Run("root/cdata", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertStr(t, vec, "movie.raw", "Marquis Warren", vector.TypeStr)
+		assertStr(t, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeStr)
+	})
 }
 
 func BenchmarkProlog(b *testing.B) {
@@ -265,6 +270,12 @@ func BenchmarkRoot(b *testing.B) {
 		bench(b, func(vec *Vector) {
 			assertStr(b, vec, "list.title", "welcome", vector.TypeStr)
 			assertStr(b, vec, "list.payload", "foobar", vector.TypeStr)
+		})
+	})
+	b.Run("root/cdata", func(b *testing.B) {
+		bench(b, func(vec *Vector) {
+			assertStr(b, vec, "movie.raw", "Marquis Warren", vector.TypeStr)
+			assertStr(b, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeStr)
 		})
 	})
 }
