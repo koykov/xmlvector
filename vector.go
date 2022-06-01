@@ -7,6 +7,11 @@ import (
 	"github.com/koykov/vector"
 )
 
+const (
+	flagEscape = 0
+	flagAttr   = 1
+)
+
 // Vector implements XML vector parser.
 type Vector struct {
 	vector.Vector

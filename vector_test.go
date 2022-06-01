@@ -122,4 +122,9 @@ func TestRoot(t *testing.T) {
 			}
 		})
 	})
+	t.Run("root/unicode", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertStr(t, vec, "俄语", "данные", vector.TypeObj)
+		assertStr(t, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttr)
+	})
 }

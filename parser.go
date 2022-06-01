@@ -278,7 +278,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		raw := vec.Src()[offset:p]
 		root.Value().Init(vec.Src(), offset, p-offset)
 		root.Value().SetBit(flagEscape, vec.checkEscape(raw))
-		if root.Limit() == 1 {
+		if !root.Key().CheckBit(flagAttr) {
 			root.SetType(vector.TypeStr)
 		}
 		offset = p
@@ -324,6 +324,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
 		attr.Value().SetBit(flagEscape, vec.checkEscape(val))
 		vec.PutNode(i, attr)
+		node.Key().SetBit(flagAttr, true)
 
 		offset = posVal1 + 1
 		if offset, eof = vec.skipFmt(offset); eof {
