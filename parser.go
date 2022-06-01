@@ -35,6 +35,12 @@ var (
 	bAfterTag = []byte(" />")
 	bCTag     = []byte("</")
 
+	bCDATAOpen  = []byte("<![CDATA[")
+	bCDATAClose = []byte("]]>")
+
+	bCommentOpen  = []byte("<!--")
+	bCommentClose = []byte("-->")
+
 	// Default key-value pairs.
 	bPairs = []byte("version1.0")
 )
@@ -168,6 +174,9 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
 		return nil, offset, vector.ErrUnexpEOF
 	}
+	if offset, eof = vec.skipComment(offset); eof {
+		return nil, offset, vector.ErrUnexpEOF
+	}
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
 		return nil, offset, ErrUnclosedTag
 	}
@@ -231,14 +240,22 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 
 func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, error) {
 	var (
-		p   int
-		eof bool
-		err error
+		p     int
+		eof   bool
+		cdata bool
+		err   error
 	)
 	if offset, eof = vec.skipFmt(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-	if vec.SrcAt(offset) == '<' {
+
+	if offset, eof = vec.skipComment(offset); eof {
+		return offset, vector.ErrUnexpEOF
+	}
+
+	offset, cdata = vec.hasCDATA(offset)
+
+	if vec.SrcAt(offset) == '<' && !cdata {
 		sl := vec.SrcLen()
 		var (
 			pn, cn *vector.Node
@@ -248,8 +265,17 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if offset, eof = vec.skipFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
+			if offset, eof = vec.skipComment(offset); eof {
+				return offset, vector.ErrUnexpEOF
+			}
 			if cn, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
 				return offset, err
+			}
+			if offset, eof = vec.skipFmt(offset); eof {
+				return offset, vector.ErrUnexpEOF
+			}
+			if offset, eof = vec.skipComment(offset); eof {
+				return offset, vector.ErrUnexpEOF
 			}
 			if !arr {
 				if pn == nil && cn != nil {
@@ -393,4 +419,38 @@ loop:
 	}
 	offset++
 	goto loop
+}
+
+func (vec *Vector) skipComment(offset int) (int, bool) {
+	var (
+		p   int
+		eof bool
+	)
+loop:
+	if offset+4 >= vec.SrcLen() {
+		return offset, false
+	}
+	if bytes.Equal(bCommentOpen, vec.Src()[offset:offset+4]) {
+		offset += 4
+		if p = bytealg.IndexAt(vec.Src(), bCommentClose, offset); p == -1 {
+			return offset, true
+		}
+		offset = p + 3
+		if offset, eof = vec.skipFmt(offset); eof {
+			return offset, eof
+		}
+		goto loop
+	}
+	return offset, false
+}
+
+func (vec *Vector) hasCDATA(offset int) (int, bool) {
+	if offset+9 >= vec.SrcLen() {
+		return offset, false
+	}
+	if bytes.Equal(bCDATAOpen, vec.Src()[offset:offset+9]) {
+		offset += 9
+		return offset, true
+	}
+	return offset, false
 }

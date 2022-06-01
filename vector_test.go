@@ -127,6 +127,15 @@ func TestRoot(t *testing.T) {
 		assertStr(t, vec, "俄语", "данные", vector.TypeObj)
 		assertStr(t, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttr)
 	})
+	t.Run("root/comment", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertStr(t, vec, "list.payload", "foobar", vector.TypeStr)
+	})
+	t.Run("root/multi-comment", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+		assertStr(t, vec, "list.title", "welcome", vector.TypeStr)
+		assertStr(t, vec, "list.payload", "foobar", vector.TypeStr)
+	})
 }
 
 func BenchmarkProlog(b *testing.B) {
@@ -245,6 +254,17 @@ func BenchmarkRoot(b *testing.B) {
 		bench(b, func(vec *Vector) {
 			assertStr(b, vec, "俄语", "данные", vector.TypeObj)
 			assertStr(b, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttr)
+		})
+	})
+	b.Run("root/comment", func(b *testing.B) {
+		bench(b, func(vec *Vector) {
+			assertStr(b, vec, "list.payload", "foobar", vector.TypeStr)
+		})
+	})
+	b.Run("root/multi-comment", func(b *testing.B) {
+		bench(b, func(vec *Vector) {
+			assertStr(b, vec, "list.title", "welcome", vector.TypeStr)
+			assertStr(b, vec, "list.payload", "foobar", vector.TypeStr)
 		})
 	})
 }
