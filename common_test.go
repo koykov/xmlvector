@@ -51,6 +51,16 @@ func getTBName(tb testing.TB) string {
 	return key[strings.Index(key, "/")+1:]
 }
 
+func bench(b *testing.B, fn func(vec *Vector)) {
+	vec := NewVector()
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		vec = assertParse(b, vec, nil, 0)
+		fn(vec)
+	}
+}
+
 func assertParse(tb testing.TB, dst *Vector, err error, errOffset int) *Vector {
 	key := getTBName(tb)
 	st := getStage(key)
