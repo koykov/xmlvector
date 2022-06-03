@@ -92,6 +92,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	return offset, nil
 }
 
+// Parse prolog instruction `<?xml ... ?>`.
 func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error) {
 	var (
 		err error
@@ -159,6 +160,7 @@ loop:
 	return offset, false
 }
 
+// Try parse XML element.
 func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.Node, int, error) {
 	var (
 		err error
@@ -238,6 +240,7 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	return node, offset, ErrUnclosedTag
 }
 
+// Try parse XML element content.
 func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, error) {
 	var (
 		p     int
@@ -320,6 +323,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 	return offset, nil
 }
 
+// Try parse XML element attributes.
 func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, error) {
 	var (
 		err      error
@@ -386,6 +390,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 	return offset, clp, err
 }
 
+// Skip close tag of XML element and return offset.
 func (vec *Vector) mustCTag(offset int, tag []byte) (int, error) {
 	if offset < vec.SrcLen()-2 && !bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
 		return offset, ErrUnclosedTag
@@ -416,6 +421,7 @@ loop:
 	goto loop
 }
 
+// Skip formatting (spaces, tabs, new lines, ...).
 func (vec *Vector) skipFmt(offset int) (int, bool) {
 loop:
 	if offset >= vec.SrcLen() {
@@ -429,6 +435,7 @@ loop:
 	goto loop
 }
 
+// Skip comments.
 func (vec *Vector) skipComment(offset int) (int, bool) {
 	var (
 		p   int
@@ -452,6 +459,7 @@ loop:
 	return offset, false
 }
 
+// Checks CDATA instruction.
 func (vec *Vector) hasCDATA(offset int) (int, bool) {
 	if offset+9 >= vec.SrcLen() {
 		return offset, false

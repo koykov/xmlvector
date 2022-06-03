@@ -7,10 +7,10 @@ import (
 type Helper struct{}
 
 var (
-	helper = &Helper{}
+	helper = Helper{}
 )
 
-func (h *Helper) Indirect(p *vector.Byteptr) []byte {
+func (h Helper) Indirect(p *vector.Byteptr) []byte {
 	b := p.RawBytes()
 	if p.CheckBit(flagEscape) {
 		p.SetBit(flagEscape, false)
