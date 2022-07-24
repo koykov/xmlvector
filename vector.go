@@ -1,8 +1,6 @@
 package xmlvector
 
 import (
-	"io"
-
 	"github.com/koykov/fastconv"
 	"github.com/koykov/vector"
 )
@@ -42,10 +40,4 @@ func (vec *Vector) ParseCopy(s []byte) error {
 // ParseCopyStr copies source string and parse it.
 func (vec *Vector) ParseCopyStr(s string) error {
 	return vec.parse(fastconv.S2B(s), true)
-}
-
-// Beautify formats vector in human-readable representation.
-func (vec *Vector) Beautify(w io.Writer) error {
-	r := vec.Root()
-	return vec.beautify(w, r, 0)
 }
