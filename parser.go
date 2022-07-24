@@ -78,6 +78,8 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	var (
 		err error
 		eof bool
+		cn  *vector.Node
+		cni int
 	)
 	node.SetOffset(vec.Index.Len(depth))
 	if offset, err = vec.parseProlog(depth+1, offset, node); err != nil {
@@ -86,8 +88,11 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	if offset, eof = vec.skipHdr(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-	if _, offset, err = vec.parseElement(depth+1, offset, node); err != nil {
+	if cn, cni, offset, err = vec.parseElement(depth+1, offset, node); err != nil {
 		return offset, err
+	}
+	if cn != nil {
+		vec.PutNode(cni, cn)
 	}
 	return offset, nil
 }
@@ -161,7 +166,7 @@ loop:
 }
 
 // Try parse XML element.
-func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.Node, int, error) {
+func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.Node, int, int, error) {
 	var (
 		err error
 		p   int
@@ -170,74 +175,73 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		eof, clp bool
 	)
 	if vec.SrcAt(offset) != '<' {
-		return nil, offset, ErrNoRoot
+		return nil, -1, offset, ErrNoRoot
 	}
 	offset++
 	if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-		return nil, offset, vector.ErrUnexpEOF
+		return nil, -1, offset, vector.ErrUnexpEOF
 	}
 	if offset, eof = vec.skipComment(offset); eof {
-		return nil, offset, vector.ErrUnexpEOF
+		return nil, -1, offset, vector.ErrUnexpEOF
 	}
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
-		return nil, offset, ErrUnclosedTag
+		return nil, -1, offset, ErrUnclosedTag
 	}
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
-	defer vec.PutNode(i, node)
 	node.Key().Init(vec.Src(), offset, p-offset)
 
 	tag = vec.Src()[offset:p]
 	offset = p
 
 	if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-		return node, offset, vector.ErrUnexpEOF
+		return node, i, offset, vector.ErrUnexpEOF
 	}
 	if c := vec.SrcAt(offset); c != '/' && c != '>' {
 		if offset, clp, err = vec.parseAttr(depth+1, offset, node); err != nil {
-			return node, offset, err
+			return node, i, offset, err
 		}
 		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-			return node, offset, vector.ErrUnexpEOF
+			return node, i, offset, vector.ErrUnexpEOF
 		}
 		if clp {
-			return node, offset, nil
+			return node, i, offset, nil
 		}
 
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
-			return node, offset, err
+			return node, i, offset, err
 		}
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
-			return node, offset, err
+			return node, i, offset, err
 		}
 		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-			return node, offset, vector.ErrUnexpEOF
+			return node, i, offset, vector.ErrUnexpEOF
 		}
-		return node, offset, nil
+		return node, i, offset, nil
 	}
 	if vec.SrcAt(offset) == '/' {
 		if offset < vec.SrcLen()-1 && vec.SrcAt(offset+1) == '>' {
 			offset += 2
-			return node, offset, nil
+			return node, i, offset, nil
 		} else {
-			return node, offset, ErrUnclosedTag
+			return node, i, offset, ErrUnclosedTag
 		}
 	}
 	if vec.SrcAt(offset) == '>' {
 		offset++
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
-			return node, offset, err
+			return node, i, offset, err
 		}
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
-			return node, offset, err
+			return node, i, offset, err
 		}
 		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-			return node, offset, vector.ErrUnexpEOF
+			return node, i, offset, vector.ErrUnexpEOF
 		}
-		return node, offset, nil
+		return node, i, offset, nil
 	}
-	return node, offset, ErrUnclosedTag
+	return node, i, offset, ErrUnclosedTag
 }
 
 // Try parse XML element content.
@@ -262,6 +266,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		sl := vec.SrcLen()
 		var (
 			pn, cn *vector.Node
+			cni    int
 			arr    bool
 		)
 		for {
@@ -271,8 +276,11 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if offset, eof = vec.skipComment(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			if cn, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
+			if cn, cni, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
 				return offset, err
+			}
+			if cn != nil {
+				vec.PutNode(cni, cn)
 			}
 			if offset, eof = vec.skipFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
