@@ -140,7 +140,7 @@ loop:
 		p0, p1, p2 := bytealg.IndexAt(src, bDTElem, lenDTOpen), bytealg.IndexAt(src, bDTPCDATA, lenDTOpen), bytealg.IndexAt(src, bDTClose, lenDTOpen)
 		if p0 != -1 && p1 > p0 && p2 > p1 {
 			offset += p2 + 2
-		} else if p := bytealg.IndexByteAtLR(src, '>', lenDTOpen); p != -1 {
+		} else if p := bytealg.IndexByteAtLUR(src, '>', lenDTOpen); p != -1 {
 			// Check DTD file.
 			offset += p + 1
 		}
@@ -316,7 +316,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			}
 			d = 3
 		} else {
-			if p = bytealg.IndexByteAtLR(vec.Src(), '<', offset); p == -1 {
+			if p = bytealg.IndexByteAtLUR(vec.Src(), '<', offset); p == -1 {
 				return offset, ErrUnclosedTag
 			}
 		}
@@ -342,7 +342,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		posName := offset
-		posName1 := bytealg.IndexByteAtLR(vec.Src(), '=', offset)
+		posName1 := bytealg.IndexByteAtLUR(vec.Src(), '=', offset)
 		if posName1 == -1 {
 			err = ErrBadAttr
 			break
@@ -358,7 +358,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		}
 		offset++
 		posVal := offset
-		posVal1 := bytealg.IndexByteAtLR(vec.Src(), '"', offset)
+		posVal1 := bytealg.IndexByteAtLUR(vec.Src(), '"', offset)
 		if posVal1 == -1 {
 			err = ErrBadAttr
 			break
@@ -418,7 +418,7 @@ func (vec *Vector) checkEscape(p []byte) bool {
 	}
 	offset := 0
 loop:
-	posAmp, posSC := bytealg.IndexByteAtLR(p, '&', offset), bytealg.IndexByteAtLR(p, ';', offset)
+	posAmp, posSC := bytealg.IndexByteAtLUR(p, '&', offset), bytealg.IndexByteAtLUR(p, ';', offset)
 	if posAmp == -1 || posSC == -1 {
 		return false
 	}
