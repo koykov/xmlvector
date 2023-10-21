@@ -1,24 +1,23 @@
 package xmlvector
 
 import (
-	"io/ioutil"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/koykov/bytealg"
 	"github.com/koykov/vector"
 )
 
 type stage struct {
 	key string
 
-	origin, fmt []byte
+	origin, fmt, flat []byte
 }
 
-var (
-	stages []stage
-)
+var stages []stage
 
 func init() {
 	_ = filepath.Walk("testdata", func(path string, info os.FileInfo, err error) error {
@@ -26,9 +25,12 @@ func init() {
 			st := stage{}
 			st.key = strings.Replace(path, ".xml", "", 1)
 			st.key = strings.Replace(st.key, "testdata/", "", 1)
-			st.origin, _ = ioutil.ReadFile(path)
-			if st.fmt, _ = ioutil.ReadFile(strings.Replace(path, ".xml", ".fmt.xml", 1)); len(st.fmt) > 0 {
+			st.origin, _ = os.ReadFile(path)
+			if st.fmt, _ = os.ReadFile(strings.Replace(path, ".xml", ".fmt.xml", 1)); len(st.fmt) > 0 {
 				// st.fmt = bytealg.Trim(st.fmt, btNl)
+			}
+			if st.flat, _ = os.ReadFile(strings.Replace(path, ".xml", ".flat.xml", 1)); len(st.flat) > 0 {
+				st.flat = bytealg.Trim(st.flat, btNl)
 			}
 			stages = append(stages, st)
 		}
@@ -71,7 +73,7 @@ func assertParse(tb testing.TB, dst *Vector, err error, errOffset int) *Vector {
 	err1 := dst.ParseCopy(st.origin)
 	if err1 != nil {
 		if err != nil {
-			if err != err1 || dst.ErrorOffset() != errOffset {
+			if !errors.Is(err1, err) || dst.ErrorOffset() != errOffset {
 				tb.Fatalf(`error mismatch, need "%s" at %d, got "%s" at %d`, err.Error(), errOffset, err1.Error(), dst.ErrorOffset())
 			}
 		} else {

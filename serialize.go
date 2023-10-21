@@ -16,24 +16,28 @@ var (
 	btTab   = []byte("\t")
 )
 
-func beautify(w io.Writer, node *vector.Node, depth int) (err error) {
+func serialize(w io.Writer, node *vector.Node, depth int, indent bool) (err error) {
 	_, _ = w.Write(bPrologOpen)
 	_ = btAttr(w, node)
 	_, _ = w.Write(bPrologClose)
-	_, _ = w.Write(btNl)
+	if indent {
+		_, _ = w.Write(btNl)
+	}
 
 	node.Each(func(idx int, node *vector.Node) {
 		if node.Type() != vector.TypeAttr {
-			err = beautify1(w, node, depth+1)
+			err = serialize1(w, node, depth+1, indent)
 		}
 	})
 	return
 }
 
-func beautify1(w io.Writer, node *vector.Node, depth int) (err error) {
+func serialize1(w io.Writer, node *vector.Node, depth int, indent bool) (err error) {
 	switch node.Type() {
 	case vector.TypeObj, vector.TypeArr:
-		writePad(w, depth-1)
+		if indent {
+			writePad(w, depth-1)
+		}
 		_, _ = w.Write(btTagO)
 		_, _ = w.Write(node.Key().Bytes())
 		_ = btAttr(w, node)
@@ -42,22 +46,30 @@ func beautify1(w io.Writer, node *vector.Node, depth int) (err error) {
 		if node.Value().Len() > 0 {
 			_, _ = w.Write(node.Value().Bytes())
 		} else {
-			_, _ = w.Write(btNl)
+			if indent {
+				_, _ = w.Write(btNl)
+			}
 			node.Each(func(idx int, node *vector.Node) {
 				if node.Type() != vector.TypeAttr {
-					err = beautify1(w, node, depth+1)
+					err = serialize1(w, node, depth+1, indent)
 				}
 			})
-			writePad(w, depth-1)
+			if indent {
+				writePad(w, depth-1)
+			}
 		}
 
 		_, _ = w.Write(bCTag)
 		_, _ = w.Write(node.Key().Bytes())
 		_, _ = w.Write(btTagC)
-		_, _ = w.Write(btNl)
+		if indent {
+			_, _ = w.Write(btNl)
+		}
 	default:
 		_, _ = w.Write(node.Value().Bytes())
-		_, _ = w.Write(btNl)
+		if indent {
+			_, _ = w.Write(btNl)
+		}
 	}
 	return
 }
