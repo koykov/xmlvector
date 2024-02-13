@@ -8,6 +8,7 @@ import (
 const (
 	flagEscape = 0
 	flagAttr   = 1
+	flagAlias  = 2
 )
 
 // Vector implements XML vector parser.

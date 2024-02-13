@@ -310,7 +310,8 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		}
 		if arr {
 			root.SetType(vector.TypeArr)
-			*root.AKA() = *pn.Key()
+			*root.Value() = *pn.Key() // Use value as an alias for arrays.
+			root.Value().SetBit(flagAlias, true)
 		}
 	} else {
 		var d int
