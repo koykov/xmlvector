@@ -43,7 +43,7 @@ func serialize1(w io.Writer, node *vector.Node, depth int, indent bool) (err err
 		_ = btAttr(w, node)
 		_, _ = w.Write(btTagC)
 
-		if node.Value().Len() > 0 {
+		if node.Value().Len() > 0 && !node.Value().CheckBit(flagAlias) {
 			_, _ = w.Write(node.Value().Bytes())
 		} else {
 			if indent {

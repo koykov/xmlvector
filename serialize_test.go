@@ -14,6 +14,7 @@ func TestSerialize(t *testing.T) {
 		var buf bytes.Buffer
 		_ = vec.Beautify(&buf)
 		if !bytes.Equal(buf.Bytes(), st.fmt) {
+			println(buf.String())
 			t.FailNow()
 		}
 	})
