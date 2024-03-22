@@ -141,6 +141,9 @@ func TestRoot(t *testing.T) {
 		assertStr(t, vec, "movie.raw", "Marquis Warren", vector.TypeStr)
 		assertStr(t, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeStr)
 	})
+	t.Run("root/sq-attr", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
 }
 
 func BenchmarkProlog(b *testing.B) {
