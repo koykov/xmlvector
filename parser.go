@@ -357,13 +357,14 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		offset++
-		if vec.SrcAt(offset) != '"' {
+		var c byte
+		if c = vec.SrcAt(offset); c != '"' && c != '\'' {
 			err = ErrBadAttr
 			break
 		}
 		offset++
 		posVal := offset
-		posVal1 := bytealg.IndexByteAtLUR(vec.Src(), '"', offset)
+		posVal1 := bytealg.IndexByteAtLUR(vec.Src(), c, offset)
 		if posVal1 == -1 {
 			err = ErrBadAttr
 			break
