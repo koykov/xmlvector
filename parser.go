@@ -122,7 +122,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 	if vec.SrcLen()-offset >= 2 && bytes.Equal(vec.Src()[offset:offset+2], bPrologClose) {
 		offset += 2
 	}
-	if offset, eof = vec.skipFmt(offset); eof {
+	if offset, eof = vec.skipCommentAndFmt(offset); eof {
 		err = vector.ErrUnexpEOF
 	}
 	return offset, err
@@ -160,7 +160,7 @@ loop:
 		}
 		offset += posClose + 2
 	}
-	if offset, eof = vec.skipFmt(offset); eof {
+	if offset, eof = vec.skipCommentAndFmt(offset); eof {
 		return offset, true
 	}
 	if dt || pi {
@@ -182,12 +182,12 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		return nil, -1, offset, ErrNoRoot
 	}
 	offset++
-	if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
+	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 		return nil, -1, offset, vector.ErrUnexpEOF
 	}
-	if offset, eof = vec.skipComment(offset); eof {
-		return nil, -1, offset, vector.ErrUnexpEOF
-	}
+	// if offset, eof = vec.skipComment(offset); eof {
+	// 	return nil, -1, offset, vector.ErrUnexpEOF
+	// }
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
@@ -199,16 +199,14 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	tag = vec.Src()[offset:p]
 	offset = p
 
-	if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
+	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 		return node, i, offset, vector.ErrUnexpEOF
 	}
 	if c := vec.SrcAt(offset); c != '/' && c != '>' {
 		if offset, clp, err = vec.parseAttr(depth+1, offset, node); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
-			return node, i, offset, vector.ErrUnexpEOF
-		}
+
 		if clp {
 			return node, i, offset, nil
 		}
@@ -216,10 +214,13 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
 			return node, i, offset, err
 		}
+		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+			return node, i, offset, vector.ErrUnexpEOF
+		}
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
+		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
 		return node, i, offset, nil
@@ -240,7 +241,7 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipFmt(offset); eof && depth > 1 {
+		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
 		return node, i, offset, nil
@@ -256,13 +257,13 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		cdata bool
 		err   error
 	)
-	if offset, eof = vec.skipFmt(offset); eof {
+	if offset, eof = vec.skipCommentAndFmt(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
 
-	if offset, eof = vec.skipComment(offset); eof {
-		return offset, vector.ErrUnexpEOF
-	}
+	// if offset, eof = vec.skipComment(offset); eof {
+	// 	return offset, vector.ErrUnexpEOF
+	// }
 
 	offset, cdata = vec.hasCDATA(offset)
 
@@ -274,24 +275,24 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			arr    bool
 		)
 		for {
-			if offset, eof = vec.skipFmt(offset); eof {
+			if offset, eof = vec.skipCommentAndFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			if offset, eof = vec.skipComment(offset); eof {
-				return offset, vector.ErrUnexpEOF
-			}
+			// if offset, eof = vec.skipComment(offset); eof {
+			// 	return offset, vector.ErrUnexpEOF
+			// }
 			if cn, cni, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
 				return offset, err
 			}
 			if cn != nil {
 				vec.PutNode(cni, cn)
 			}
-			if offset, eof = vec.skipFmt(offset); eof {
+			if offset, eof = vec.skipCommentAndFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			if offset, eof = vec.skipComment(offset); eof {
-				return offset, vector.ErrUnexpEOF
-			}
+			// if offset, eof = vec.skipComment(offset); eof {
+			// 	return offset, vector.ErrUnexpEOF
+			// }
 			if !arr {
 				if pn == nil && cn != nil {
 					pn = cn
@@ -343,7 +344,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		eof, clp bool
 	)
 	for {
-		if offset, eof = vec.skipFmt(offset); eof {
+		if offset, eof = vec.skipCommentAndFmt(offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		posName := offset
@@ -353,7 +354,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 			break
 		}
 		offset = posName1
-		if offset, eof = vec.skipFmt(offset); eof {
+		if offset, eof = vec.skipCommentAndFmt(offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		offset++
@@ -379,7 +380,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		node.Key().SetBit(flagAttr, true)
 
 		offset = posVal1 + 1
-		if offset, eof = vec.skipFmt(offset); eof {
+		if offset, eof = vec.skipCommentAndFmt(offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 
@@ -451,10 +452,7 @@ loop:
 
 // Skip comments.
 func (vec *Vector) skipComment(offset int) (int, bool) {
-	var (
-		p   int
-		eof bool
-	)
+	var p int
 loop:
 	if offset+4 >= vec.SrcLen() {
 		return offset, false
@@ -465,10 +463,24 @@ loop:
 			return offset, true
 		}
 		offset = p + 3
-		if offset, eof = vec.skipFmt(offset); eof {
-			return offset, eof
-		}
 		goto loop
+	}
+	return offset, false
+}
+
+// Skip mixed formatting bytes and comments.
+// See skipFmt and skipComment.
+func (vec *Vector) skipCommentAndFmt(offset int) (int, bool) {
+	var eof bool
+	poff := -1
+	for poff != offset {
+		poff = offset
+		if offset, eof = vec.skipFmt(offset); eof {
+			return offset, true
+		}
+		if offset, eof = vec.skipComment(offset); eof {
+			return offset, true
+		}
 	}
 	return offset, false
 }
