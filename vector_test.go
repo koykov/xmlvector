@@ -144,6 +144,9 @@ func TestRoot(t *testing.T) {
 	t.Run("root/sq-attr", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 	})
+	t.Run("root/fmt-comment", func(t *testing.T) {
+		assertParse(t, vec, nil, 0)
+	})
 }
 
 func BenchmarkProlog(b *testing.B) {
