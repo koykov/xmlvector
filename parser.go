@@ -185,9 +185,6 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 		return nil, -1, offset, vector.ErrUnexpEOF
 	}
-	// if offset, eof = vec.skipComment(offset); eof {
-	// 	return nil, -1, offset, vector.ErrUnexpEOF
-	// }
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
@@ -260,11 +257,6 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 	if offset, eof = vec.skipCommentAndFmt(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-
-	// if offset, eof = vec.skipComment(offset); eof {
-	// 	return offset, vector.ErrUnexpEOF
-	// }
-
 	offset, cdata = vec.hasCDATA(offset)
 
 	if vec.SrcAt(offset) == '<' && !cdata {
@@ -278,9 +270,6 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if offset, eof = vec.skipCommentAndFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			// if offset, eof = vec.skipComment(offset); eof {
-			// 	return offset, vector.ErrUnexpEOF
-			// }
 			if cn, cni, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
 				return offset, err
 			}
@@ -290,9 +279,6 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if offset, eof = vec.skipCommentAndFmt(offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
-			// if offset, eof = vec.skipComment(offset); eof {
-			// 	return offset, vector.ErrUnexpEOF
-			// }
 			if !arr {
 				if pn == nil && cn != nil {
 					pn = cn
