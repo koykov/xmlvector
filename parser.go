@@ -188,6 +188,7 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
+	p = vec.skipName(offset, p)
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
@@ -481,4 +482,15 @@ func (vec *Vector) hasCDATA(offset int) (int, bool) {
 		return offset, true
 	}
 	return offset, false
+}
+
+// Skip element name before till first formatting byte.
+func (vec *Vector) skipName(offset, limit int) int {
+	for offset < limit {
+		if c := vec.SrcAt(offset); c == bFmt[0] || c == bFmt[1] || c == bFmt[2] || c == bFmt[3] {
+			break
+		}
+		offset++
+	}
+	return offset
 }
