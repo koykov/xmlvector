@@ -484,6 +484,7 @@ func (vec *Vector) hasCDATA(offset int) (int, bool) {
 	return offset, false
 }
 
+// Skip element name before till first formatting byte.
 func (vec *Vector) skipName(offset, limit int) int {
 	for offset < limit {
 		if c := vec.SrcAt(offset); c == bFmt[0] || c == bFmt[1] || c == bFmt[2] || c == bFmt[3] {
