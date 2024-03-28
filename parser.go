@@ -186,13 +186,9 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		return nil, -1, offset, vector.ErrUnexpEOF
 	}
 	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
-		panic("1")
 		return nil, -1, offset, ErrUnclosedTag
 	}
-
-	if offset > 29730 {
-		print("1\n")
-	}
+	p = vec.skipName(offset, p)
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
@@ -219,7 +215,6 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
-		println(string(vec.Src()[offset-20 : offset+20]))
 		if offset, err = vec.mustCTag(offset, tag); err != nil {
 			return node, i, offset, err
 		}
@@ -233,7 +228,6 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 			offset += 2
 			return node, i, offset, nil
 		} else {
-			panic("2")
 			return node, i, offset, ErrUnclosedTag
 		}
 	}
@@ -250,7 +244,6 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		}
 		return node, i, offset, nil
 	}
-	panic("3")
 	return node, i, offset, ErrUnclosedTag
 }
 
@@ -317,7 +310,6 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			d = 3
 		} else {
 			if p = bytealg.IndexByteAtLUR(vec.Src(), '<', offset); p == -1 {
-				panic("4")
 				return offset, ErrUnclosedTag
 			}
 		}
@@ -403,14 +395,11 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 // Skip close tag of XML element and return offset.
 func (vec *Vector) mustCTag(offset int, tag []byte) (int, error) {
 	if offset < vec.SrcLen()-2 && !bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
-		panic("5")
 		return offset, ErrUnclosedTag
 	}
 	offset += 2
 	offset += len(tag)
 	if vec.SrcAt(offset) != '>' {
-		println(string(vec.Src()[offset-20 : offset+20]))
-		panic("6")
 		return offset, ErrUnclosedTag
 	}
 	return offset + 1, nil
@@ -493,4 +482,14 @@ func (vec *Vector) hasCDATA(offset int) (int, bool) {
 		return offset, true
 	}
 	return offset, false
+}
+
+func (vec *Vector) skipName(offset, limit int) int {
+	for offset < limit {
+		if c := vec.SrcAt(offset); c == bFmt[0] || c == bFmt[1] || c == bFmt[2] || c == bFmt[3] {
+			break
+		}
+		offset++
+	}
+	return offset
 }
