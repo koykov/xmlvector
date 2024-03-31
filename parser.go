@@ -51,7 +51,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 		vec.Helper = helper
 	}
 
-	s = bytealg.Trim(s, bFmt)
+	s = bytealg.TrimBytesFmt4(s)
 	if err = vec.SetSrc(s, copy); err != nil {
 		return
 	}
@@ -109,6 +109,8 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 	)
 	node.SetOffset(vec.Index.Len(depth))
 	src := vec.Src()[offset:]
+	n := len(src)
+	_ = src[n-1]
 	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
 		offset = 5
 		offset, _, err = vec.parseAttr(depth, offset, node)
@@ -119,7 +121,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		vec.PutNode(i, attr)
 		return offset, nil
 	}
-	if vec.SrcLen()-offset >= 2 && bytes.Equal(vec.Src()[offset:offset+2], bPrologClose) {
+	if n-offset >= 2 && bytes.Equal(src[:offset+2], bPrologClose) {
 		offset += 2
 	}
 	if offset, eof = vec.skipCommentAndFmt(offset); eof {
