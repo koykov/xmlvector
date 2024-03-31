@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"github.com/koykov/bytealg"
-	"github.com/koykov/fastconv"
+	"github.com/koykov/byteconv"
 )
 
 var (
@@ -77,8 +77,8 @@ func Unescape(p []byte) []byte {
 
 func unescNum(x []byte) (uint64, error) {
 	if x[0] == 'x' {
-		return strconv.ParseUint(fastconv.B2S(x[1:]), 16, 64)
+		return strconv.ParseUint(byteconv.B2S(x[1:]), 16, 64)
 	} else {
-		return strconv.ParseUint(fastconv.B2S(x), 10, 64)
+		return strconv.ParseUint(byteconv.B2S(x), 10, 64)
 	}
 }

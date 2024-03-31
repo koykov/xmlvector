@@ -1,7 +1,7 @@
 package xmlvector
 
 import (
-	"github.com/koykov/fastconv"
+	"github.com/koykov/byteconv"
 	"github.com/koykov/vector"
 )
 
@@ -30,7 +30,7 @@ func (vec *Vector) Parse(s []byte) error {
 
 // ParseStr parses source string.
 func (vec *Vector) ParseStr(s string) error {
-	return vec.parse(fastconv.S2B(s), false)
+	return vec.parse(byteconv.S2B(s), false)
 }
 
 // ParseCopy copies source bytes and parse it.
@@ -40,5 +40,5 @@ func (vec *Vector) ParseCopy(s []byte) error {
 
 // ParseCopyStr copies source string and parse it.
 func (vec *Vector) ParseCopyStr(s string) error {
-	return vec.parse(fastconv.S2B(s), true)
+	return vec.parse(byteconv.S2B(s), true)
 }
