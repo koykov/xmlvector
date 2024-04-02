@@ -143,10 +143,10 @@ loop:
 	}
 	if dt = bytes.Equal(src[:lenDTOpen], bDocType); dt {
 		// Check local DT.
-		p0, p1, p2 := bytealg.IndexAt(src, bDTElem, lenDTOpen), bytealg.IndexAt(src, bDTPCDATA, lenDTOpen), bytealg.IndexAt(src, bDTClose, lenDTOpen)
+		p0, p1, p2 := bytealg.IndexAtBytes(src, bDTElem, lenDTOpen), bytealg.IndexAtBytes(src, bDTPCDATA, lenDTOpen), bytealg.IndexAtBytes(src, bDTClose, lenDTOpen)
 		if p0 != -1 && p1 > p0 && p2 > p1 {
 			offset += p2 + 2
-		} else if p := bytealg.IndexByteAtLUR(src, '>', lenDTOpen); p != -1 {
+		} else if p := bytealg.IndexByteAtBytes(src, '>', lenDTOpen); p != -1 {
 			// Check DTD file.
 			offset += p + 1
 		}
@@ -156,7 +156,7 @@ loop:
 		return offset, false
 	}
 	if pi = bytes.Equal(src[:lenPIOpen], bPIOpen); pi {
-		posClose := bytealg.IndexAt(src, bPIClose, lenPIOpen)
+		posClose := bytealg.IndexAtBytes(src, bPIClose, lenPIOpen)
 		if posClose == -1 {
 			return offset, true
 		}
@@ -180,29 +180,33 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 
 		eof, clp bool
 	)
-	if vec.SrcAt(offset) != '<' {
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+	if src[offset] != '<' {
 		return nil, -1, offset, ErrNoRoot
 	}
 	offset++
 	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 		return nil, -1, offset, vector.ErrUnexpEOF
 	}
-	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
+	if p = bytealg.IndexAnyAtBytes(src, bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
 	p = vec.skipName(offset, p)
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
-	node.Key().Init(vec.Src(), offset, p-offset)
+	node.Key().InitRaw(srcp, offset, p-offset)
 
-	tag = vec.Src()[offset:p]
+	tag = src[offset:p]
 	offset = p
 
 	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
 		return node, i, offset, vector.ErrUnexpEOF
 	}
-	if c := vec.SrcAt(offset); c != '/' && c != '>' {
+	if c := src[offset]; c != '/' && c != '>' {
 		if offset, clp, err = vec.parseAttr(depth+1, offset, node); err != nil {
 			return node, i, offset, err
 		}
@@ -225,15 +229,15 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		}
 		return node, i, offset, nil
 	}
-	if vec.SrcAt(offset) == '/' {
-		if offset < vec.SrcLen()-1 && vec.SrcAt(offset+1) == '>' {
+	if src[offset] == '/' {
+		if offset < n-1 && src[offset+1] == '>' {
 			offset += 2
 			return node, i, offset, nil
 		} else {
 			return node, i, offset, ErrUnclosedTag
 		}
 	}
-	if vec.SrcAt(offset) == '>' {
+	if src[offset] == '>' {
 		offset++
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
 			return node, i, offset, err
@@ -262,8 +266,13 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 	}
 	offset, cdata = vec.hasCDATA(offset)
 
-	if vec.SrcAt(offset) == '<' && !cdata {
-		sl := vec.SrcLen()
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+
+	if src[offset] == '<' && !cdata {
+		sl := n
 		var (
 			pn, cn *vector.Node
 			cni    int
@@ -293,7 +302,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 				break
 			}
 			if offset+1 < sl {
-				if bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
+				if bytes.Equal(src[offset:offset+2], bCTag) {
 					break
 				}
 			}
@@ -306,17 +315,17 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 	} else {
 		var d int
 		if cdata {
-			if p = bytealg.IndexAt(vec.Src(), bCDATAClose, offset); p == -1 {
+			if p = bytealg.IndexAtBytes(src, bCDATAClose, offset); p == -1 {
 				return offset, vector.ErrUnexpEOF
 			}
 			d = 3
 		} else {
-			if p = bytealg.IndexByteAtLUR(vec.Src(), '<', offset); p == -1 {
+			if p = bytealg.IndexByteAtBytes(src, '<', offset); p == -1 {
 				return offset, ErrUnclosedTag
 			}
 		}
-		raw := vec.Src()[offset:p]
-		root.Value().Init(vec.Src(), offset, p-offset)
+		raw := src[offset:p]
+		root.Value().InitRaw(srcp, offset, p-offset)
 		root.Value().SetBit(flagEscape, vec.checkEscape(raw))
 		if !root.Key().CheckBit(flagAttr) {
 			root.SetType(vector.TypeStr)
@@ -332,12 +341,18 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		err      error
 		eof, clp bool
 	)
+
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+
 	for {
 		if offset, eof = vec.skipCommentAndFmt(offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		posName := offset
-		posName1 := bytealg.IndexByteAtLUR(vec.Src(), '=', offset)
+		posName1 := bytealg.IndexByteAtBytes(src, '=', offset)
 		if posName1 == -1 {
 			err = ErrBadAttr
 			break
@@ -348,22 +363,22 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		}
 		offset++
 		var c byte
-		if c = vec.SrcAt(offset); c != '"' && c != '\'' {
+		if c = src[offset]; c != '"' && c != '\'' {
 			err = ErrBadAttr
 			break
 		}
 		offset++
 		posVal := offset
-		posVal1 := bytealg.IndexByteAtLUR(vec.Src(), c, offset)
+		posVal1 := bytealg.IndexByteAtBytes(src, c, offset)
 		if posVal1 == -1 {
 			err = ErrBadAttr
 			break
 		}
 
 		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
-		attr.Key().Init(vec.Src(), posName, posName1-posName)
-		val := vec.Src()[posVal:posVal1]
-		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
+		attr.Key().InitRaw(srcp, posName, posName1-posName)
+		val := src[posVal:posVal1]
+		attr.Value().InitRaw(srcp, posVal, posVal1-posVal)
 		attr.Value().SetBit(flagEscape, vec.checkEscape(val))
 		vec.PutNode(i, attr)
 		node.Key().SetBit(flagAttr, true)
@@ -374,11 +389,11 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		}
 
 		var brk bool
-		b := vec.SrcAt(offset)
+		b := src[offset]
 		switch b {
 		case '?', '/':
 			offset++
-			if vec.SrcAt(offset) != '>' {
+			if src[offset] != '>' {
 				return offset, clp, ErrUnexpToken
 			}
 			offset++
@@ -414,7 +429,7 @@ func (vec *Vector) checkEscape(p []byte) bool {
 	}
 	offset := 0
 loop:
-	posAmp, posSC := bytealg.IndexByteAtLUR(p, '&', offset), bytealg.IndexByteAtLUR(p, ';', offset)
+	posAmp, posSC := bytealg.IndexByteAtBytes(p, '&', offset), bytealg.IndexByteAtBytes(p, ';', offset)
 	if posAmp == -1 || posSC == -1 {
 		return false
 	}
@@ -448,7 +463,7 @@ loop:
 	}
 	if bytes.Equal(bCommentOpen, vec.Src()[offset:offset+4]) {
 		offset += 4
-		if p = bytealg.IndexAt(vec.Src(), bCommentClose, offset); p == -1 {
+		if p = bytealg.IndexAtBytes(vec.Src(), bCommentClose, offset); p == -1 {
 			return offset, true
 		}
 		offset = p + 3
