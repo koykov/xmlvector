@@ -51,7 +51,7 @@ func skipCommentAndFmt(src []byte, n, offset int) (int, bool) {
 	poff := -1
 	for poff != offset {
 		poff = offset
-		if offset, eof = skipFmt(src, n, offset); eof {
+		if offset, eof = skipFmtTable(src, n, offset); eof {
 			return offset, true
 		}
 		if offset, eof = skipComment(src, n, offset); eof {
