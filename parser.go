@@ -19,8 +19,6 @@ const (
 
 var (
 	// Byte constants.
-	bFmt = []byte(" \t\n\r")
-
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
 
@@ -197,7 +195,7 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	if p = bytealg.IndexAnyAtBytes(src, bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
-	p = skipName(src, n, offset, p)
+	p = skipNameTable(src, n, offset, p)
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
