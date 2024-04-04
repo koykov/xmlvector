@@ -1,6 +1,10 @@
 package xmlvector
 
-import "sync"
+import (
+	"sync"
+
+	"github.com/koykov/vector"
+)
 
 // Pool represents JSON vectors pool.
 type Pool struct {
@@ -12,7 +16,7 @@ var (
 	// Just call urlvector.Acquire() and urlvector.Release().
 	P Pool
 	// Suppress go vet warnings.
-	_, _ = Acquire, Release
+	_, _, _ = Acquire, Release, ReleaseNC
 )
 
 // Get old vector from the pool or create new one.
@@ -40,5 +44,11 @@ func Acquire() *Vector {
 
 // Release puts vector back to default pool instance.
 func Release(vec *Vector) {
+	P.Put(vec)
+}
+
+// ReleaseNC puts vector back to pool with enforced no-clear flag.
+func ReleaseNC(vec *Vector) {
+	vec.SetBit(vector.FlagNoClear, true)
 	P.Put(vec)
 }

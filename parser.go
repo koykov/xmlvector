@@ -19,8 +19,6 @@ const (
 
 var (
 	// Byte constants.
-	bFmt = []byte(" \t\n\r")
-
 	bPrologOpen  = []byte("<?xml")
 	bPrologClose = []byte("?>")
 
@@ -51,7 +49,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 		vec.Helper = helper
 	}
 
-	s = bytealg.Trim(s, bFmt)
+	s = bytealg.TrimBytesFmt4(s)
 	if err = vec.SetSrc(s, copy); err != nil {
 		return
 	}
@@ -109,6 +107,8 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 	)
 	node.SetOffset(vec.Index.Len(depth))
 	src := vec.Src()[offset:]
+	n := len(src)
+	_ = src[n-1]
 	if len(src) > 4 && bytes.Equal(src[:5], bPrologOpen) {
 		offset = 5
 		offset, _, err = vec.parseAttr(depth, offset, node)
@@ -119,10 +119,10 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		vec.PutNode(i, attr)
 		return offset, nil
 	}
-	if vec.SrcLen()-offset >= 2 && bytes.Equal(vec.Src()[offset:offset+2], bPrologClose) {
+	if n-offset >= 2 && bytes.Equal(src[:offset+2], bPrologClose) {
 		offset += 2
 	}
-	if offset, eof = vec.skipCommentAndFmt(offset); eof {
+	if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 		err = vector.ErrUnexpEOF
 	}
 	return offset, err
@@ -132,35 +132,38 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 // PI == processing instructions
 // eg: <?xml-stylesheet type="text/css" href="my-style.css"?>
 func (vec *Vector) skipHdr(offset int) (int, bool) {
+	src := vec.Src()
+	n := len(src)
+	_ = src[n-1]
 	var dt, pi, eof bool
 loop:
-	src := vec.Src()[offset:]
+	srcc := src[offset:]
 	// DT
-	if len(src) < lenDTOpen {
+	if len(srcc) < lenDTOpen {
 		return offset, false
 	}
-	if dt = bytes.Equal(src[:lenDTOpen], bDocType); dt {
+	if dt = bytes.Equal(srcc[:lenDTOpen], bDocType); dt {
 		// Check local DT.
-		p0, p1, p2 := bytealg.IndexAt(src, bDTElem, lenDTOpen), bytealg.IndexAt(src, bDTPCDATA, lenDTOpen), bytealg.IndexAt(src, bDTClose, lenDTOpen)
+		p0, p1, p2 := bytealg.IndexAtBytes(srcc, bDTElem, lenDTOpen), bytealg.IndexAtBytes(srcc, bDTPCDATA, lenDTOpen), bytealg.IndexAtBytes(srcc, bDTClose, lenDTOpen)
 		if p0 != -1 && p1 > p0 && p2 > p1 {
 			offset += p2 + 2
-		} else if p := bytealg.IndexByteAtLUR(src, '>', lenDTOpen); p != -1 {
+		} else if p := bytealg.IndexByteAtBytes(srcc, '>', lenDTOpen); p != -1 {
 			// Check DTD file.
 			offset += p + 1
 		}
 	}
 	// PI
-	if len(src) < lenPIOpen {
+	if len(srcc) < lenPIOpen {
 		return offset, false
 	}
-	if pi = bytes.Equal(src[:lenPIOpen], bPIOpen); pi {
-		posClose := bytealg.IndexAt(src, bPIClose, lenPIOpen)
+	if pi = bytes.Equal(srcc[:lenPIOpen], bPIOpen); pi {
+		posClose := bytealg.IndexAtBytes(srcc, bPIClose, lenPIOpen)
 		if posClose == -1 {
 			return offset, true
 		}
 		offset += posClose + 2
 	}
-	if offset, eof = vec.skipCommentAndFmt(offset); eof {
+	if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 		return offset, true
 	}
 	if dt || pi {
@@ -178,29 +181,33 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 
 		eof, clp bool
 	)
-	if vec.SrcAt(offset) != '<' {
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+	if src[offset] != '<' {
 		return nil, -1, offset, ErrNoRoot
 	}
 	offset++
-	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+	if offset, eof = skipCommentAndFmt(src, n, offset); eof && depth > 1 {
 		return nil, -1, offset, vector.ErrUnexpEOF
 	}
-	if p = bytealg.IndexAnyAt(vec.Src(), bAfterTag, offset); p == -1 {
+	if p = bytealg.IndexAnyAtBytes(src, bAfterTag, offset); p == -1 {
 		return nil, -1, offset, ErrUnclosedTag
 	}
-	p = vec.skipName(offset, p)
+	p = skipNameTable(src, n, offset, p)
 
 	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
 	node.SetOffset(vec.Index.Len(depth + 1))
-	node.Key().Init(vec.Src(), offset, p-offset)
+	node.Key().InitRaw(srcp, offset, p-offset)
 
-	tag = vec.Src()[offset:p]
+	tag = src[offset:p]
 	offset = p
 
-	if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+	if offset, eof = skipCommentAndFmt(src, n, offset); eof && depth > 1 {
 		return node, i, offset, vector.ErrUnexpEOF
 	}
-	if c := vec.SrcAt(offset); c != '/' && c != '>' {
+	if c := src[offset]; c != '/' && c != '>' {
 		if offset, clp, err = vec.parseAttr(depth+1, offset, node); err != nil {
 			return node, i, offset, err
 		}
@@ -212,34 +219,34 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
-		if offset, err = vec.mustCTag(offset, tag); err != nil {
+		if offset, err = skipCTag(src, n, offset, tag); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
 		return node, i, offset, nil
 	}
-	if vec.SrcAt(offset) == '/' {
-		if offset < vec.SrcLen()-1 && vec.SrcAt(offset+1) == '>' {
+	if src[offset] == '/' {
+		if offset < n-1 && src[offset+1] == '>' {
 			offset += 2
 			return node, i, offset, nil
 		} else {
 			return node, i, offset, ErrUnclosedTag
 		}
 	}
-	if vec.SrcAt(offset) == '>' {
+	if src[offset] == '>' {
 		offset++
 		if offset, err = vec.parseContent(depth, offset, node); err != nil {
 			return node, i, offset, err
 		}
-		if offset, err = vec.mustCTag(offset, tag); err != nil {
+		if offset, err = skipCTag(src, n, offset, tag); err != nil {
 			return node, i, offset, err
 		}
-		if offset, eof = vec.skipCommentAndFmt(offset); eof && depth > 1 {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof && depth > 1 {
 			return node, i, offset, vector.ErrUnexpEOF
 		}
 		return node, i, offset, nil
@@ -255,20 +262,24 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		cdata bool
 		err   error
 	)
-	if offset, eof = vec.skipCommentAndFmt(offset); eof {
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+	if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
-	offset, cdata = vec.hasCDATA(offset)
+	offset, cdata = skipCDATA(src, n, offset)
 
-	if vec.SrcAt(offset) == '<' && !cdata {
-		sl := vec.SrcLen()
+	if src[offset] == '<' && !cdata {
+		sl := n
 		var (
 			pn, cn *vector.Node
 			cni    int
 			arr    bool
 		)
 		for {
-			if offset, eof = vec.skipCommentAndFmt(offset); eof {
+			if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
 			if cn, cni, offset, err = vec.parseElement(depth+1, offset, root); err != nil {
@@ -277,7 +288,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if cn != nil {
 				vec.PutNode(cni, cn)
 			}
-			if offset, eof = vec.skipCommentAndFmt(offset); eof {
+			if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 				return offset, vector.ErrUnexpEOF
 			}
 			if !arr {
@@ -291,7 +302,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 				break
 			}
 			if offset+1 < sl {
-				if bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
+				if bytes.Equal(src[offset:offset+2], bCTag) {
 					break
 				}
 			}
@@ -304,17 +315,17 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 	} else {
 		var d int
 		if cdata {
-			if p = bytealg.IndexAt(vec.Src(), bCDATAClose, offset); p == -1 {
+			if p = bytealg.IndexAtBytes(src, bCDATAClose, offset); p == -1 {
 				return offset, vector.ErrUnexpEOF
 			}
 			d = 3
 		} else {
-			if p = bytealg.IndexByteAtLUR(vec.Src(), '<', offset); p == -1 {
+			if p = bytealg.IndexByteAtBytes(src, '<', offset); p == -1 {
 				return offset, ErrUnclosedTag
 			}
 		}
-		raw := vec.Src()[offset:p]
-		root.Value().Init(vec.Src(), offset, p-offset)
+		raw := src[offset:p]
+		root.Value().InitRaw(srcp, offset, p-offset)
 		root.Value().SetBit(flagEscape, vec.checkEscape(raw))
 		if !root.Key().CheckBit(flagAttr) {
 			root.SetType(vector.TypeStr)
@@ -330,53 +341,59 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 		err      error
 		eof, clp bool
 	)
+
+	src := vec.Src()
+	srcp := vec.SrcAddr()
+	n := len(src)
+	_ = src[n-1]
+
 	for {
-		if offset, eof = vec.skipCommentAndFmt(offset); eof {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		posName := offset
-		posName1 := bytealg.IndexByteAtLUR(vec.Src(), '=', offset)
+		posName1 := bytealg.IndexByteAtBytes(src, '=', offset)
 		if posName1 == -1 {
 			err = ErrBadAttr
 			break
 		}
 		offset = posName1
-		if offset, eof = vec.skipCommentAndFmt(offset); eof {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 		offset++
 		var c byte
-		if c = vec.SrcAt(offset); c != '"' && c != '\'' {
+		if c = src[offset]; c != '"' && c != '\'' {
 			err = ErrBadAttr
 			break
 		}
 		offset++
 		posVal := offset
-		posVal1 := bytealg.IndexByteAtLUR(vec.Src(), c, offset)
+		posVal1 := bytealg.IndexByteAtBytes(src, c, offset)
 		if posVal1 == -1 {
 			err = ErrBadAttr
 			break
 		}
 
 		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
-		attr.Key().Init(vec.Src(), posName, posName1-posName)
-		val := vec.Src()[posVal:posVal1]
-		attr.Value().Init(vec.Src(), posVal, posVal1-posVal)
+		attr.Key().InitRaw(srcp, posName, posName1-posName)
+		val := src[posVal:posVal1]
+		attr.Value().InitRaw(srcp, posVal, posVal1-posVal)
 		attr.Value().SetBit(flagEscape, vec.checkEscape(val))
 		vec.PutNode(i, attr)
 		node.Key().SetBit(flagAttr, true)
 
 		offset = posVal1 + 1
-		if offset, eof = vec.skipCommentAndFmt(offset); eof {
+		if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 			return offset, clp, vector.ErrUnexpEOF
 		}
 
 		var brk bool
-		b := vec.SrcAt(offset)
+		b := src[offset]
 		switch b {
 		case '?', '/':
 			offset++
-			if vec.SrcAt(offset) != '>' {
+			if src[offset] != '>' {
 				return offset, clp, ErrUnexpToken
 			}
 			offset++
@@ -392,19 +409,6 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 	return offset, clp, err
 }
 
-// Skip close tag of XML element and return offset.
-func (vec *Vector) mustCTag(offset int, tag []byte) (int, error) {
-	if offset < vec.SrcLen()-2 && !bytes.Equal(vec.Src()[offset:offset+2], bCTag) {
-		return offset, ErrUnclosedTag
-	}
-	offset += 2
-	offset += len(tag)
-	if vec.SrcAt(offset) != '>' {
-		return offset, ErrUnclosedTag
-	}
-	return offset + 1, nil
-}
-
 // Check p for escaped entities and glyphs.
 func (vec *Vector) checkEscape(p []byte) bool {
 	if len(p) == 0 {
@@ -412,7 +416,7 @@ func (vec *Vector) checkEscape(p []byte) bool {
 	}
 	offset := 0
 loop:
-	posAmp, posSC := bytealg.IndexByteAtLUR(p, '&', offset), bytealg.IndexByteAtLUR(p, ';', offset)
+	posAmp, posSC := bytealg.IndexByteAtBytes(p, '&', offset), bytealg.IndexByteAtBytes(p, ';', offset)
 	if posAmp == -1 || posSC == -1 {
 		return false
 	}
@@ -421,76 +425,4 @@ loop:
 	}
 	offset = posSC
 	goto loop
-}
-
-// Skip formatting (spaces, tabs, new lines, ...).
-func (vec *Vector) skipFmt(offset int) (int, bool) {
-loop:
-	if offset >= vec.SrcLen() {
-		return offset, true
-	}
-	c := vec.SrcAt(offset)
-	if c != bFmt[0] && c != bFmt[1] && c != bFmt[2] && c != bFmt[3] {
-		return offset, false
-	}
-	offset++
-	goto loop
-}
-
-// Skip comments.
-func (vec *Vector) skipComment(offset int) (int, bool) {
-	var p int
-loop:
-	if offset+4 >= vec.SrcLen() {
-		return offset, false
-	}
-	if bytes.Equal(bCommentOpen, vec.Src()[offset:offset+4]) {
-		offset += 4
-		if p = bytealg.IndexAt(vec.Src(), bCommentClose, offset); p == -1 {
-			return offset, true
-		}
-		offset = p + 3
-		goto loop
-	}
-	return offset, false
-}
-
-// Skip mixed formatting bytes and comments.
-// See skipFmt and skipComment.
-func (vec *Vector) skipCommentAndFmt(offset int) (int, bool) {
-	var eof bool
-	poff := -1
-	for poff != offset {
-		poff = offset
-		if offset, eof = vec.skipFmt(offset); eof {
-			return offset, true
-		}
-		if offset, eof = vec.skipComment(offset); eof {
-			return offset, true
-		}
-	}
-	return offset, false
-}
-
-// Checks CDATA instruction.
-func (vec *Vector) hasCDATA(offset int) (int, bool) {
-	if offset+9 >= vec.SrcLen() {
-		return offset, false
-	}
-	if bytes.Equal(bCDATAOpen, vec.Src()[offset:offset+9]) {
-		offset += 9
-		return offset, true
-	}
-	return offset, false
-}
-
-// Skip element name before till first formatting byte.
-func (vec *Vector) skipName(offset, limit int) int {
-	for offset < limit {
-		if c := vec.SrcAt(offset); c == bFmt[0] || c == bFmt[1] || c == bFmt[2] || c == bFmt[3] {
-			break
-		}
-		offset++
-	}
-	return offset
 }
