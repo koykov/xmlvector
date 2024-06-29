@@ -2,6 +2,7 @@ package xmlvector
 
 import (
 	"bytes"
+	"errors"
 
 	"github.com/koykov/bytealg"
 	"github.com/koykov/vector"
@@ -41,12 +42,15 @@ var (
 
 	// Default key-value pairs.
 	bPairs = []byte("version1.0")
+
+	errBadInit = errors.New("bad vector initialization, use xmlvector.NewVector() or xmlvector.Acquire()")
 )
 
 // Main internal parser helper.
 func (vec *Vector) parse(s []byte, copy bool) (err error) {
-	if vec.Helper == nil {
-		vec.Helper = helper
+	if !vec.init {
+		err = errBadInit
+		return
 	}
 
 	s = bytealg.TrimBytesFmt4(s)
