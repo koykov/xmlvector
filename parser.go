@@ -91,7 +91,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 	if offset, err = vec.parseProlog(depth+1, offset, node); err != nil {
 		return offset, err
 	}
-	if offset, eof = vec.skipHdr(offset); eof {
+	if offset, eof = vec.skipHeader(offset); eof {
 		return offset, vector.ErrUnexpEOF
 	}
 	if cn, cni, offset, err = vec.parseElement(depth+1, offset, node); err != nil {
@@ -135,7 +135,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 // Skip header part (doctype and processing instructions)
 // PI == processing instructions
 // eg: <?xml-stylesheet type="text/css" href="my-style.css"?>
-func (vec *Vector) skipHdr(offset int) (int, bool) {
+func (vec *Vector) skipHeader(offset int) (int, bool) {
 	src := vec.Src()
 	n := len(src)
 	_ = src[n-1]
