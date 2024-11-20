@@ -1,6 +1,7 @@
 package xmlvector
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/koykov/vector"
@@ -149,6 +150,25 @@ func TestRoot(t *testing.T) {
 	})
 }
 
+func TestReader(t *testing.T) {
+	t.Run("reader", func(t *testing.T) {
+		src := []byte(`<?xml version="1.1" encoding="UTF-8"?><root>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</root>`)
+		rdr := bytes.NewReader(src)
+		vec := NewVector()
+		err := vec.ParseReader(rdr)
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+	t.Run("file", func(t *testing.T) {
+		vec := NewVector()
+		err := vec.ParseFile("testdata/root/object.xml")
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
+}
+
 func BenchmarkProlog(b *testing.B) {
 	b.Run("prolog/initial", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
@@ -283,5 +303,28 @@ func BenchmarkRoot(b *testing.B) {
 			assertStr(b, vec, "movie.raw", "Marquis Warren", vector.TypeString)
 			assertStr(b, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeString)
 		})
+	})
+}
+
+func BenchmarkReader(b *testing.B) {
+	b.Run("reader", func(b *testing.B) {
+		b.ReportAllocs()
+		src := []byte(`<?xml version="1.1" encoding="UTF-8"?><root>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</root>`)
+		var buf bytes.Buffer
+		vec := NewVector()
+		for i := 0; i < b.N; i++ {
+			buf.Reset()
+			vec.Reset()
+			_, _ = buf.Write(src)
+			_ = vec.ParseReader(&buf)
+		}
+	})
+	b.Run("file", func(b *testing.B) {
+		b.ReportAllocs()
+		vec := NewVector()
+		for i := 0; i < b.N; i++ {
+			vec.Reset()
+			_ = vec.ParseFile("testdata/root/object.xml")
+		}
 	})
 }
