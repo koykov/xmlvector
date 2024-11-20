@@ -34,7 +34,7 @@ func serialize(w io.Writer, node *vector.Node, depth int, indent bool) (err erro
 
 func serialize1(w io.Writer, node *vector.Node, depth int, indent bool) (err error) {
 	switch node.Type() {
-	case vector.TypeObj, vector.TypeArr:
+	case vector.TypeObject, vector.TypeArray:
 		if indent {
 			writePad(w, depth-1)
 		}
@@ -50,7 +50,7 @@ func serialize1(w io.Writer, node *vector.Node, depth int, indent bool) (err err
 				_, _ = w.Write(btNl)
 			}
 			node.Each(func(idx int, node *vector.Node) {
-				if node.Type() != vector.TypeAttr {
+				if node.Type() != vector.TypeAttribute {
 					err = serialize1(w, node, depth+1, indent)
 				}
 			})
@@ -76,7 +76,7 @@ func serialize1(w io.Writer, node *vector.Node, depth int, indent bool) (err err
 
 func btAttr(w io.Writer, node *vector.Node) (err error) {
 	node.Each(func(idx int, node *vector.Node) {
-		if node.Type() == vector.TypeAttr {
+		if node.Type() == vector.TypeAttribute {
 			_, _ = w.Write(btSpace)
 			_, _ = w.Write(node.Key().Bytes())
 			_, _ = w.Write(btEq)

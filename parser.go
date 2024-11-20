@@ -48,7 +48,7 @@ var (
 
 // Main internal parser helper.
 func (vec *Vector) parse(s []byte, copy bool) (err error) {
-	if !vec.init {
+	if !vec.CheckBit(vector.FlagInit) {
 		err = errBadInit
 		return
 	}
@@ -60,7 +60,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 
 	offset := 0
 	// Create root node and register it.
-	root, i := vec.GetNodeWT(0, vector.TypeObj)
+	root, i := vec.AcquireNodeWithType(0, vector.TypeObject)
 
 	// Parse source data.
 	offset, err = vec.parseGeneric(0, offset, root)
@@ -68,7 +68,7 @@ func (vec *Vector) parse(s []byte, copy bool) (err error) {
 		vec.SetErrOffset(offset)
 		return err
 	}
-	vec.PutNode(i, root)
+	vec.ReleaseNode(i, root)
 
 	// Check unparsed tail.
 	if offset < vec.SrcLen() {
@@ -98,7 +98,7 @@ func (vec *Vector) parseGeneric(depth, offset int, node *vector.Node) (int, erro
 		return offset, err
 	}
 	if cn != nil {
-		vec.PutNode(cni, cn)
+		vec.ReleaseNode(cni, cn)
 	}
 	return offset, nil
 }
@@ -117,10 +117,10 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		offset = 5
 		offset, _, err = vec.parseAttr(depth, offset, node)
 	} else {
-		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
+		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttr)
 		attr.Key().Init(bPairs, offsetVersionKey, lenVersionKey)
 		attr.Value().Init(bPairs, offsetVersionVal, lenVersionVal)
-		vec.PutNode(i, attr)
+		vec.ReleaseNode(i, attr)
 		return offset, nil
 	}
 	if n-offset >= 2 && bytes.Equal(src[:offset+2], bPrologClose) {
@@ -201,7 +201,7 @@ func (vec *Vector) parseElement(depth, offset int, root *vector.Node) (*vector.N
 	}
 	p = skipNameTable(src, n, offset, p)
 
-	node, i := vec.GetChildWT(root, depth, vector.TypeObj)
+	node, i := vec.AcquireChildWithType(root, depth, vector.TypeObject)
 	node.SetOffset(vec.Index.Len(depth + 1))
 	node.Key().InitRaw(srcp, offset, p-offset)
 
@@ -290,7 +290,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 				return offset, err
 			}
 			if cn != nil {
-				vec.PutNode(cni, cn)
+				vec.ReleaseNode(cni, cn)
 			}
 			if offset, eof = skipCommentAndFmt(src, n, offset); eof {
 				return offset, vector.ErrUnexpEOF
@@ -332,7 +332,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 		root.Value().InitRaw(srcp, offset, p-offset)
 		root.Value().SetBit(flagEscape, vec.checkEscape(raw))
 		if !root.Key().CheckBit(flagAttr) {
-			root.SetType(vector.TypeStr)
+			root.SetType(vector.TypeString)
 		}
 		offset = p + d
 	}
@@ -379,12 +379,12 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 			break
 		}
 
-		attr, i := vec.GetChildWT(node, depth, vector.TypeAttr)
+		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttr)
 		attr.Key().InitRaw(srcp, posName, posName1-posName)
 		val := src[posVal:posVal1]
 		attr.Value().InitRaw(srcp, posVal, posVal1-posVal)
 		attr.Value().SetBit(flagEscape, vec.checkEscape(val))
-		vec.PutNode(i, attr)
+		vec.ReleaseNode(i, attr)
 		node.Key().SetBit(flagAttr, true)
 
 		offset = posVal1 + 1

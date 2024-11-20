@@ -10,15 +10,15 @@ func TestProlog(t *testing.T) {
 	vec := NewVector()
 	t.Run("prolog/initial", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
-		assertType(t, vec, "", vector.TypeObj)
-		assertStr(t, vec, "@version", "1.1", vector.TypeAttr)
-		assertStr(t, vec, "@encoding", "UTF-8", vector.TypeAttr)
-		assertStr(t, vec, "version", "initial", vector.TypeStr)
+		assertType(t, vec, "", vector.TypeObject)
+		assertStr(t, vec, "@version", "1.1", vector.TypeAttribute)
+		assertStr(t, vec, "@encoding", "UTF-8", vector.TypeAttribute)
+		assertStr(t, vec, "version", "initial", vector.TypeString)
 	})
 	t.Run("prolog/missed", func(t *testing.T) {
 		vec = assertParse(t, vec, nil, 0)
-		assertType(t, vec, "", vector.TypeObj)
-		assertStr(t, vec, "@version", "1.0", vector.TypeAttr)
+		assertType(t, vec, "", vector.TypeObject)
+		assertStr(t, vec, "@version", "1.0", vector.TypeAttribute)
 	})
 	t.Run("prolog/skipPI", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
@@ -38,30 +38,30 @@ func TestRoot(t *testing.T) {
 	vec := NewVector()
 	t.Run("root/static", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", vector.TypeStr)
+		assertStr(t, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", vector.TypeString)
 	})
 	t.Run("root/collapsed", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "root", vector.TypeObj)
+		assertType(t, vec, "root", vector.TypeObject)
 	})
 	t.Run("root/attr", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "root@title", "Foo", vector.TypeAttr)
-		assertStr(t, vec, "root@descr", "Bar", vector.TypeAttr)
-		assertStr(t, vec, "root@arg0", "qwe", vector.TypeAttr)
-		assertStr(t, vec, "root@arg1", "15", vector.TypeAttr)
+		assertStr(t, vec, "root@title", "Foo", vector.TypeAttribute)
+		assertStr(t, vec, "root@descr", "Bar", vector.TypeAttribute)
+		assertStr(t, vec, "root@arg0", "qwe", vector.TypeAttribute)
+		assertStr(t, vec, "root@arg1", "15", vector.TypeAttribute)
 	})
 	t.Run("root/object", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "note", vector.TypeObj)
-		assertStr(t, vec, "note.to", "Tove", vector.TypeStr)
-		assertStr(t, vec, "note.from", "Jani", vector.TypeStr)
-		assertStr(t, vec, "note.heading", "Reminder", vector.TypeStr)
-		assertStr(t, vec, "note.body", "Don't forget me this weekend!", vector.TypeStr)
+		assertType(t, vec, "note", vector.TypeObject)
+		assertStr(t, vec, "note.to", "Tove", vector.TypeString)
+		assertStr(t, vec, "note.from", "Jani", vector.TypeString)
+		assertStr(t, vec, "note.heading", "Reminder", vector.TypeString)
+		assertStr(t, vec, "note.body", "Don't forget me this weekend!", vector.TypeString)
 	})
 	t.Run("root/array", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "CATALOG.CD", vector.TypeArr)
+		assertType(t, vec, "CATALOG.CD", vector.TypeArray)
 		vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
 			switch idx {
 			case 0:
@@ -93,7 +93,7 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/mixed", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertType(t, vec, "result.listing", vector.TypeArr)
+		assertType(t, vec, "result.listing", vector.TypeArray)
 		vec.Dot("result.listing").Each(func(idx int, node *vector.Node) {
 			switch idx {
 			case 0:
@@ -124,22 +124,22 @@ func TestRoot(t *testing.T) {
 	})
 	t.Run("root/unicode", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "俄语", "данные", vector.TypeObj)
-		assertStr(t, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttr)
+		assertStr(t, vec, "俄语", "данные", vector.TypeObject)
+		assertStr(t, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttribute)
 	})
 	t.Run("root/comment", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "list.payload", "foobar", vector.TypeStr)
+		assertStr(t, vec, "list.payload", "foobar", vector.TypeString)
 	})
 	t.Run("root/multi-comment", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "list.title", "welcome", vector.TypeStr)
-		assertStr(t, vec, "list.payload", "foobar", vector.TypeStr)
+		assertStr(t, vec, "list.title", "welcome", vector.TypeString)
+		assertStr(t, vec, "list.payload", "foobar", vector.TypeString)
 	})
 	t.Run("root/cdata", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
-		assertStr(t, vec, "movie.raw", "Marquis Warren", vector.TypeStr)
-		assertStr(t, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeStr)
+		assertStr(t, vec, "movie.raw", "Marquis Warren", vector.TypeString)
+		assertStr(t, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeString)
 	})
 	t.Run("root/sq-attr", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
@@ -152,16 +152,16 @@ func TestRoot(t *testing.T) {
 func BenchmarkProlog(b *testing.B) {
 	b.Run("prolog/initial", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertType(b, vec, "", vector.TypeObj)
-			assertStr(b, vec, "@version", "1.1", vector.TypeAttr)
-			assertStr(b, vec, "@encoding", "UTF-8", vector.TypeAttr)
-			assertStr(b, vec, "version", "initial", vector.TypeStr)
+			assertType(b, vec, "", vector.TypeObject)
+			assertStr(b, vec, "@version", "1.1", vector.TypeAttribute)
+			assertStr(b, vec, "@encoding", "UTF-8", vector.TypeAttribute)
+			assertStr(b, vec, "version", "initial", vector.TypeString)
 		})
 	})
 	b.Run("prolog/missed", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertType(b, vec, "", vector.TypeObj)
-			assertStr(b, vec, "@version", "1.0", vector.TypeAttr)
+			assertType(b, vec, "", vector.TypeObject)
+			assertStr(b, vec, "@version", "1.0", vector.TypeAttribute)
 		})
 	})
 	b.Run("prolog/skipPI", func(b *testing.B) { bench(b, func(vec *Vector) {}) })
@@ -173,32 +173,32 @@ func BenchmarkProlog(b *testing.B) {
 func BenchmarkRoot(b *testing.B) {
 	b.Run("root/static", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", vector.TypeStr)
+			assertStr(b, vec, "root", "Lorem ipsum dolor sit amet, consectetur adipiscing elit.", vector.TypeString)
 		})
 	})
 	b.Run("root/collapsed", func(b *testing.B) {
-		bench(b, func(vec *Vector) { assertType(b, vec, "root", vector.TypeObj) })
+		bench(b, func(vec *Vector) { assertType(b, vec, "root", vector.TypeObject) })
 	})
 	b.Run("root/attr", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "root@title", "Foo", vector.TypeAttr)
-			assertStr(b, vec, "root@descr", "Bar", vector.TypeAttr)
-			assertStr(b, vec, "root@arg0", "qwe", vector.TypeAttr)
-			assertStr(b, vec, "root@arg1", "15", vector.TypeAttr)
+			assertStr(b, vec, "root@title", "Foo", vector.TypeAttribute)
+			assertStr(b, vec, "root@descr", "Bar", vector.TypeAttribute)
+			assertStr(b, vec, "root@arg0", "qwe", vector.TypeAttribute)
+			assertStr(b, vec, "root@arg1", "15", vector.TypeAttribute)
 		})
 	})
 	b.Run("root/object", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertType(b, vec, "note", vector.TypeObj)
-			assertStr(b, vec, "note.to", "Tove", vector.TypeStr)
-			assertStr(b, vec, "note.from", "Jani", vector.TypeStr)
-			assertStr(b, vec, "note.heading", "Reminder", vector.TypeStr)
-			assertStr(b, vec, "note.body", "Don't forget me this weekend!", vector.TypeStr)
+			assertType(b, vec, "note", vector.TypeObject)
+			assertStr(b, vec, "note.to", "Tove", vector.TypeString)
+			assertStr(b, vec, "note.from", "Jani", vector.TypeString)
+			assertStr(b, vec, "note.heading", "Reminder", vector.TypeString)
+			assertStr(b, vec, "note.body", "Don't forget me this weekend!", vector.TypeString)
 		})
 	})
 	b.Run("root/array", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertType(b, vec, "CATALOG.CD", vector.TypeArr)
+			assertType(b, vec, "CATALOG.CD", vector.TypeArray)
 			vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
 				switch idx {
 				case 0:
@@ -231,7 +231,7 @@ func BenchmarkRoot(b *testing.B) {
 	})
 	b.Run("root/mixed", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertType(b, vec, "result.listing", vector.TypeArr)
+			assertType(b, vec, "result.listing", vector.TypeArray)
 			vec.Dot("result.listing").Each(func(idx int, node *vector.Node) {
 				switch idx {
 				case 0:
@@ -263,25 +263,25 @@ func BenchmarkRoot(b *testing.B) {
 	})
 	b.Run("root/unicode", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "俄语", "данные", vector.TypeObj)
-			assertStr(b, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttr)
+			assertStr(b, vec, "俄语", "данные", vector.TypeObject)
+			assertStr(b, vec, "俄语@լեզու", "ռուսերեն", vector.TypeAttribute)
 		})
 	})
 	b.Run("root/comment", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "list.payload", "foobar", vector.TypeStr)
+			assertStr(b, vec, "list.payload", "foobar", vector.TypeString)
 		})
 	})
 	b.Run("root/multi-comment", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "list.title", "welcome", vector.TypeStr)
-			assertStr(b, vec, "list.payload", "foobar", vector.TypeStr)
+			assertStr(b, vec, "list.title", "welcome", vector.TypeString)
+			assertStr(b, vec, "list.payload", "foobar", vector.TypeString)
 		})
 	})
 	b.Run("root/cdata", func(b *testing.B) {
 		bench(b, func(vec *Vector) {
-			assertStr(b, vec, "movie.raw", "Marquis Warren", vector.TypeStr)
-			assertStr(b, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeStr)
+			assertStr(b, vec, "movie.raw", "Marquis Warren", vector.TypeString)
+			assertStr(b, vec, "movie.cdata", `<strong>Main protagonist<strong> of "The Hateful Eight"`, vector.TypeString)
 		})
 	})
 }
