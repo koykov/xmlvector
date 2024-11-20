@@ -14,12 +14,12 @@ const (
 // Vector implements XML vector parser.
 type Vector struct {
 	vector.Vector
-	init bool
 }
 
 // NewVector makes new parser.
 func NewVector() *Vector {
-	vec := &Vector{init: true}
+	vec := &Vector{}
+	vec.SetBit(vector.FlagInit, true)
 	vec.Helper = helper
 	return vec
 }

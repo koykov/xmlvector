@@ -158,4 +158,4 @@ func init() {
 	binNlSpace7, binSpace8 = *(*uint64)(unsafe.Pointer(&binNlSpace7Bytes[0])), *(*uint64)(unsafe.Pointer(&binSpace8Bytes[0]))
 }
 
-var _ = skipFmt
+var _, _ = skipFmt, skipName
