@@ -117,7 +117,7 @@ func (vec *Vector) parseProlog(depth, offset int, node *vector.Node) (int, error
 		offset = 5
 		offset, _, err = vec.parseAttr(depth, offset, node)
 	} else {
-		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttr)
+		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttribute)
 		attr.Key().Init(bPairs, offsetVersionKey, lenVersionKey)
 		attr.Value().Init(bPairs, offsetVersionVal, lenVersionVal)
 		vec.ReleaseNode(i, attr)
@@ -298,7 +298,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			if !arr {
 				if pn == nil && cn != nil {
 					pn = cn
-				} else if cn.KeyString() == pn.KeyString() {
+				} else if cn != nil && cn.KeyString() == pn.KeyString() {
 					arr = true
 				}
 			}
@@ -312,7 +312,7 @@ func (vec *Vector) parseContent(depth, offset int, root *vector.Node) (int, erro
 			}
 		}
 		if arr {
-			root.SetType(vector.TypeArr)
+			root.SetType(vector.TypeArray)
 			*root.Value() = *pn.Key() // Use value as an alias for arrays.
 			root.Value().SetBit(flagAlias, true)
 		}
@@ -379,7 +379,7 @@ func (vec *Vector) parseAttr(depth, offset int, node *vector.Node) (int, bool, e
 			break
 		}
 
-		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttr)
+		attr, i := vec.AcquireChildWithType(node, depth, vector.TypeAttribute)
 		attr.Key().InitRaw(srcp, posName, posName1-posName)
 		val := src[posVal:posVal1]
 		attr.Value().InitRaw(srcp, posVal, posVal1-posVal)
