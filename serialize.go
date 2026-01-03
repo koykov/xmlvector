@@ -25,7 +25,7 @@ func serialize(w io.Writer, node *vector.Node, depth int, indent bool) (err erro
 	}
 
 	node.Each(func(idx int, node *vector.Node) {
-		if node.Type() != vector.TypeAttr {
+		if node.Type() != vector.TypeAttribute {
 			err = serialize1(w, node, depth+1, indent)
 		}
 	})
