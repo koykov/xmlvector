@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"strconv"
 
-	"github.com/koykov/bytealg"
 	"github.com/koykov/byteconv"
+	"github.com/koykov/vector"
 )
 
 var (
@@ -20,12 +20,12 @@ var (
 func Unescape(p []byte) []byte {
 	l, i, j, off := len(p), 0, 0, 0
 	for {
-		i = bytealg.IndexByteAtBytes(p, '&', off)
+		i = vector.IndexByteAt(p, '&', off)
 		if i < 0 || i+1 == l {
 			break
 		}
 		off = i + 1
-		j = bytealg.IndexByteAtBytes(p, ';', off)
+		j = vector.IndexByteAt(p, ';', off)
 		if j < 0 || j <= i {
 			break
 		}
