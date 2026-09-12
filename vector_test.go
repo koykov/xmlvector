@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/koykov/vector"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProlog(t *testing.T) {
@@ -66,29 +68,17 @@ func TestRoot(t *testing.T) {
 		vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
 			switch idx {
 			case 0:
-				if node.Dot("TITLE").Value().String() != "Empire Burlesque" {
-					t.FailNow()
-				}
+				assert.Equal(t, "Empire Burlesque", node.Dot("TITLE").Value().String())
 			case 1:
-				if node.Dot("ARTIST").Value().String() != "Bonnie Tyler" {
-					t.FailNow()
-				}
+				assert.Equal(t, "Bonnie Tyler", node.Dot("ARTIST").Value().String())
 			case 2:
-				if node.Dot("COUNTRY").Value().String() != "USA" {
-					t.FailNow()
-				}
+				assert.Equal(t, "USA", node.Dot("COUNTRY").Value().String())
 			case 3:
-				if node.Dot("COMPANY").Value().String() != "Virgin records" {
-					t.FailNow()
-				}
+				assert.Equal(t, "Virgin records", node.Dot("COMPANY").Value().String())
 			case 4:
-				if node.Dot("PRICE").Value().String() != "9.90" {
-					t.FailNow()
-				}
+				assert.Equal(t, "9.90", node.Dot("PRICE").Value().String())
 			case 5:
-				if node.Dot("YEAR").Value().String() != "1998" {
-					t.FailNow()
-				}
+				assert.Equal(t, "1998", node.Dot("YEAR").Value().String())
 			}
 		})
 	})
@@ -98,28 +88,16 @@ func TestRoot(t *testing.T) {
 		vec.Dot("result.listing").Each(func(idx int, node *vector.Node) {
 			switch idx {
 			case 0:
-				if node.Dot("@title").String() != "Poker US  " {
-					t.FailNow()
-				}
+				assert.Equal(t, "Poker US  ", node.Dot("@title").String())
 			case 1:
-				if node.Dot("@descr").String() != "Pop Creative" {
-					t.FailNow()
-				}
+				assert.Equal(t, "Pop Creative", node.Dot("@descr").String())
 			case 2:
-				if node.Dot("@site").String() != "p.npcta.xyz" {
-					t.FailNow()
-				}
+				assert.Equal(t, "p.npcta.xyz", node.Dot("@site").String())
 			case 3:
-				if node.Dot("@bid").String() != "0.000018" {
-					t.FailNow()
-				}
+				assert.Equal(t, "0.000018", node.Dot("@bid").String())
 			case 4:
-				if node.Dot("@url").String() != "https://g.co/tfXw4dB5w2M_4" {
-					t.FailNow()
-				}
-				if node.String() != "foobar" {
-					t.FailNow()
-				}
+				assert.Equal(t, "https://g.co/tfXw4dB5w2M_4", node.Dot("@url").String())
+				assert.Equal(t, "foobar", node.String())
 			}
 		})
 	})
@@ -156,16 +134,12 @@ func TestReader(t *testing.T) {
 		rdr := bytes.NewReader(src)
 		vec := NewVector()
 		err := vec.ParseReader(rdr)
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	})
 	t.Run("file", func(t *testing.T) {
 		vec := NewVector()
 		err := vec.ParseFile("testdata/root/object.xml")
-		if err != nil {
-			t.Fatal(err)
-		}
+		require.NoError(t, err)
 	})
 }
 
@@ -222,29 +196,17 @@ func BenchmarkRoot(b *testing.B) {
 			vec.Dot("CATALOG.CD").Each(func(idx int, node *vector.Node) {
 				switch idx {
 				case 0:
-					if node.Dot("TITLE").Value().String() != "Empire Burlesque" {
-						b.FailNow()
-					}
+					assert.True(b, "Empire Burlesque" == node.Dot("TITLE").Value().String())
 				case 1:
-					if node.Dot("ARTIST").Value().String() != "Bonnie Tyler" {
-						b.FailNow()
-					}
+					assert.True(b, "Bonnie Tyler" == node.Dot("ARTIST").Value().String())
 				case 2:
-					if node.Dot("COUNTRY").Value().String() != "USA" {
-						b.FailNow()
-					}
+					assert.True(b, "USA" == node.Dot("COUNTRY").Value().String())
 				case 3:
-					if node.Dot("COMPANY").Value().String() != "Virgin records" {
-						b.FailNow()
-					}
+					assert.True(b, "Virgin records" == node.Dot("COMPANY").Value().String())
 				case 4:
-					if node.Dot("PRICE").Value().String() != "9.90" {
-						b.FailNow()
-					}
+					assert.True(b, "9.90" == node.Dot("PRICE").Value().String())
 				case 5:
-					if node.Dot("YEAR").Value().String() != "1998" {
-						b.FailNow()
-					}
+					assert.True(b, "1998" == node.Dot("YEAR").Value().String())
 				}
 			})
 		})
@@ -255,28 +217,16 @@ func BenchmarkRoot(b *testing.B) {
 			vec.Dot("result.listing").Each(func(idx int, node *vector.Node) {
 				switch idx {
 				case 0:
-					if node.Dot("@title").String() != "Poker US  " {
-						b.FailNow()
-					}
+					assert.True(b, "Poker US  " == node.Dot("@title").String())
 				case 1:
-					if node.Dot("@descr").String() != "Pop Creative" {
-						b.FailNow()
-					}
+					assert.True(b, "Pop Creative" == node.Dot("@descr").String())
 				case 2:
-					if node.Dot("@site").String() != "p.npcta.xyz" {
-						b.FailNow()
-					}
+					assert.True(b, "p.npcta.xyz" == node.Dot("@site").String())
 				case 3:
-					if node.Dot("@bid").String() != "0.000018" {
-						b.FailNow()
-					}
+					assert.True(b, "0.000018" == node.Dot("@bid").String())
 				case 4:
-					if node.Dot("@url").String() != "https://g.co/tfXw4dB5w2M_4" {
-						b.FailNow()
-					}
-					if node.String() != "foobar" {
-						b.FailNow()
-					}
+					assert.True(b, "https://g.co/tfXw4dB5w2M_4" == node.Dot("@url").String())
+					assert.True(b, "foobar" == node.String())
 				}
 			})
 		})
