@@ -9,6 +9,8 @@ import (
 
 	"github.com/koykov/bytealg"
 	"github.com/koykov/vector"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type stage struct {
@@ -66,16 +68,13 @@ func bench(b *testing.B, fn func(vec *Vector)) {
 func assertParse(tb testing.TB, dst *Vector, err error, errOffset int) *Vector {
 	key := getTBName(tb)
 	st := getStage(key)
-	if st == nil {
-		tb.Fatal("stage not found")
-	}
+	require.NotNil(tb, st, "stage not found")
 	dst.Reset()
 	err1 := dst.ParseCopy(st.origin)
 	if err1 != nil {
 		if err != nil {
-			if !errors.Is(err1, err) || dst.ErrorOffset() != errOffset {
-				tb.Fatalf(`error mismatch, need "%s" at %d, got "%s" at %d`, err.Error(), errOffset, err1.Error(), dst.ErrorOffset())
-			}
+			assert.True(tb, errors.Is(err1, err), `error mismatch, need "%s" at %d, got "%s" at %d`, err.Error(), errOffset, err1.Error(), dst.ErrorOffset())
+			assert.True(tb, errOffset == dst.ErrorOffset(), "error offset mismatch")
 		} else {
 			tb.Fatalf(`err "%s" caught by offset %d`, err1.Error(), dst.ErrorOffset())
 		}
@@ -84,18 +83,13 @@ func assertParse(tb testing.TB, dst *Vector, err error, errOffset int) *Vector {
 }
 
 func assertType(tb testing.TB, vec *Vector, path string, typ vector.Type) {
-	if typ1 := vec.Dot(path).Type(); typ1 != typ {
-		tb.Error("type mismatch, need", typ, "got", typ1)
-	}
+	assert.True(tb, typ == vec.Dot(path).Type(), "type mismatch")
 }
 
 func assertStr(tb testing.TB, vec *Vector, path, expect string, typ vector.Type) {
-	var node *vector.Node
-	if node = vec.Dot(path); node.Type() != typ {
-		tb.Error("node type mismatch, need", typ, "got", node.Type())
+	node := vec.Dot(path)
+	if !assert.True(tb, typ == node.Type(), "node type mismatch") {
 		return
 	}
-	if v := node.String(); v != expect {
-		tb.Error("node value mismatch, need", expect, "got", v)
-	}
+	assert.True(tb, expect == node.String(), "node value mismatch")
 }

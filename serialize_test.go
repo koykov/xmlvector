@@ -3,6 +3,9 @@ package xmlvector
 import (
 	"bytes"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSerialize(t *testing.T) {
@@ -11,22 +14,19 @@ func TestSerialize(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 		key := getTBName(t)
 		st := getStage(key)
+		require.NotNil(t, st, "stage not found")
 		var buf bytes.Buffer
 		_ = vec.Beautify(&buf)
-		if !bytes.Equal(buf.Bytes(), st.fmt) {
-			println(buf.String())
-			t.FailNow()
-		}
+		assert.Equal(t, st.fmt, buf.Bytes(), "beautify mismatch")
 	})
 	t.Run("serialize/marshal", func(t *testing.T) {
 		assertParse(t, vec, nil, 0)
 		key := getTBName(t)
 		st := getStage(key)
+		require.NotNil(t, st, "stage not found")
 		var buf bytes.Buffer
 		_ = vec.Marshal(&buf)
-		if !bytes.Equal(buf.Bytes(), st.flat) {
-			t.FailNow()
-		}
+		assert.Equal(t, st.flat, buf.Bytes(), "marshal mismatch")
 	})
 }
 
